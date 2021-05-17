@@ -163,12 +163,9 @@ public class AdobeTitle {
      * @throws DataFormatException
      */
     private String decompress(byte[] compressed) throws DataFormatException {
-        //System.out.println("byte: " + Arrays.toString(compressed));
-        //System.out.println("size compress: " + compressed.length);
 
         byte[] slice = Arrays.copyOfRange(compressed, 0, 32);
 
-        //System.out.println("str" + new String(slice) + " size:" + slice.length);
         this.header = slice;
 
         // Decompress the bytes
@@ -185,11 +182,9 @@ public class AdobeTitle {
             int resultLength = decompresser.inflate(result);
             xmlout.write(result, 0, resultLength);
         } while (!decompresser.finished());
-        //finalSize = decompresser.bytesWritten;
 
         decompresser.end();
 
-        //System.out.println("size decompresse " + xmlout.size());
         return new String(xmlout.toByteArray());
     }
 
@@ -203,30 +198,25 @@ public class AdobeTitle {
     private byte[] compress(String decompressed) throws DataFormatException, UnsupportedEncodingException {
         byte[] input = decompressed.getBytes();
 
-        //System.out.println("size in decompress: " + input.length);
         ByteArrayOutputStream xmlout = new ByteArrayOutputStream(10000);
 
         Deflater compresser = new Deflater();
 
-        xmlout.write(this.header, 0, 32); // ADD
+        xmlout.write(this.header, 0, 32);
         compresser.setInput(input, 0, input.length);
 
         int i = 0;
         do {
-            //System.out.println("WHILE " + i);
             compresser.finish();
 
             byte[] output = new byte[1000];
             int compressedDataLength = compresser.deflate(output);
-            //System.out.println("need:"+compresser.needsInput() + ", " + compressedDataLength);
 
             xmlout.write(output, 0, compressedDataLength);
             i++;
         } while (!compresser.finished());
         compresser.end();
 
-        //System.out.println("compresse: " + Arrays.toString(xmlout.toByteArray()));
-        //System.out.println("size compresse: " + xmlout.toByteArray().length);
         return xmlout.toByteArray();
     }
 
