@@ -37,7 +37,7 @@ public class AdobeTitle {
      * Utiliser quand on va compresser (écrire dans le fichier).
      */
     public AdobeTitle() {
-        texts = new ArrayList<Text>();
+        this.texts = new ArrayList<Text>();
     }
 
     /**
@@ -51,7 +51,7 @@ public class AdobeTitle {
      * @throws IOException
      */
     public AdobeTitle(String data) throws DataFormatException, ParserConfigurationException, SAXException, IOException {
-        texts = new ArrayList<Text>();
+        this.texts = new ArrayList<Text>();
 
         byte[] decode = Base64.decode(data, Base64.GZIP);
 
@@ -65,10 +65,15 @@ public class AdobeTitle {
 
         Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(path_tmp));
 
+        // Adobe_Root
         NodeList list = xml.getDocumentElement().getChildNodes();
 
+        ArrayList<TextDescription> liste_text_description = new ArrayList<TextDescription>();
+
+        // Ce qui est dans Adobe_Root :
         for (int i = 0; i < list.getLength(); i++) {
 
+            // Ce qui nous intéresse "InscriberLayouts" :
             if (list.item(i).getNodeName().equals("InscriberLayouts")) {
                 System.out.println(i + " : " + list.item(i).getNodeName());
 
@@ -81,6 +86,22 @@ public class AdobeTitle {
 
                         NodeList layout = inscriber.item(j).getChildNodes();
                         for (int k = 0; k < layout.getLength(); k++) {
+
+                            // Les fonts/cara lié au texte :
+                            if (layout.item(k).getNodeName().equals("TextDescriptions")) {
+
+                                System.out.println(" * * " + k + " : " + layout.item(k).getNodeName());
+
+                                NodeList text_descriptions = layout.item(k).getChildNodes();
+
+                                for (int l = 0; l < text_descriptions.getLength(); l++) {
+                                    if (text_descriptions.item(l).getNodeName().equals("TextDescription")) {
+                                        liste_text_description.add(new TextDescription(text_descriptions.item(l)));
+                                    }
+
+                                }
+
+                            }
 
                             if (layout.item(k).getNodeName().equals("Layers")) {
                                 System.out.println(" * * " + k + " : " + layout.item(k).getNodeName());
@@ -101,7 +122,7 @@ public class AdobeTitle {
                                                 for (int n = 0; n < textPage.getLength(); n++) {
                                                     System.out.println(" * * * * * " + n + " : " + textPage.item(n).getNodeName());
 
-                                                    Text tc = new Text(textPage.item(n), null);
+                                                    Text tc = new Text(textPage.item(n), liste_text_description);
 
                                                     texts.add(tc);
 
@@ -146,7 +167,7 @@ public class AdobeTitle {
      */
     public String toXML() throws DataFormatException, UnsupportedEncodingException {
         // Prend les données décodée et les recompresse.
-        byte[] data = compress(this.data_decode);
+        byte[] data = compress(this.data_decode); // TODO : on doit faire data_decode un XML à partir des données de ArrayList<Text>... :'(
 
         // Puis réapplique la Base 64.
         return Base64.encodeBytes(data, Base64.DONT_BREAK_LINES);
@@ -189,7 +210,8 @@ public class AdobeTitle {
     }
 
     /**
-     * Compresse les données décodée pour après passer dans le codage 64 pour enregistrer le fichier.
+     * Compresse les données décodée pour après passer dans le codage 64 pour
+     * enregistrer le fichier.
      *
      * @param decompressed Les données décompressées.
      *

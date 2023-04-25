@@ -7,8 +7,10 @@ package com.phenix.adobepremiereproject.AdobeTitle;
 
 import com.phenix.adobepremiereproject.AdobeTitle.Font.Font;
 import java.io.File;
+import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * Partie qui conserne les textes dans les "Title" Adobe, la balise "TextChain".
@@ -37,9 +39,10 @@ public class Text {
      */
     public Text() {
         try {
-            this.node = (Node) DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\template_text.xml"));
-            this.textDescription = new TextDescription(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\template_textdescription.xml")));
+            this.node = (Node) DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_chain.xml"));
+            this.textDescription = new TextDescription(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_description.xml")));
         } catch (Exception ex) {
+            ex.printStackTrace();
         }
         this.needTextDescription = false;
     }
@@ -50,11 +53,11 @@ public class Text {
      * @param node
      * @param textDescription
      */
-    public Text(Node node, TextDescription textDescription) {
+    public Text(Node node, ArrayList<TextDescription> textDescription) {
         this.node = node;
-        this.textDescription = textDescription;
 
-        this.needTextDescription = (textDescription != null);
+        System.out.println("> text : " + node.getNodeName());
+
         /*
         <TextChain>
                             <ChainProperty Version="9">
@@ -99,6 +102,45 @@ public class Text {
                             </TextLine>
                         </TextChain>
          */
+        NodeList text_chain = this.node.getChildNodes();
+
+        for (int i = 0; i < text_chain.getLength(); i++) {
+
+            if (text_chain.item(i).getNodeName().equals("TextLine")) {
+
+                NodeList text_line = text_chain.item(i).getChildNodes();
+
+                for (int j = 0; j < text_line.getLength(); j++) {
+                    if (text_line.item(j).getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
+
+                        NodeList character_attributes = text_line.item(j).getChildNodes();
+
+                        for (int k = 0; k < character_attributes.getLength(); k++) {
+
+                            if (character_attributes.item(k).getNodeName().equals("CharacterAttributes")) {
+                                Node attribute = character_attributes.item(k);
+
+                                int reference = Integer.parseInt(attribute.getAttributes().getNamedItem("TextRef").getNodeValue());
+
+                                System.out.println("TextRef : " + reference);
+
+                                // On lie le TextDescription qu'on a avec le bon texte...
+                                for (int l = 0; l < textDescription.size(); l++) {
+                                    if (textDescription.get(l).getReference() == reference) {
+                                        this.textDescription = textDescription.get(l);
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        this.needTextDescription = (textDescription != null);
     }
 
     public void setPositionX(float x) {
@@ -133,6 +175,10 @@ public class Text {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(1).getTextContent());
     }
 
+    public String getFont() {
+        return this.textDescription.getFont();
+    }
+
     /**
      * Définit la font du text.
      *
@@ -163,7 +209,34 @@ public class Text {
     }
 
     public void setText(String text) {
-        this.node.getChildNodes().item(2).getChildNodes().item(4).setTextContent(text + "");
+        for (int i = 0; i < this.node.getChildNodes().getLength(); i++) {
+            System.out.println(">> " + this.node.getChildNodes().item(i).getNodeName());
+
+            if (this.node.getChildNodes().item(i).getNodeName().equals("TextChain")) {
+                NodeList text_chain = this.node.getChildNodes().item(i).getChildNodes();
+
+                System.out.println(">>>" + text_chain.item(i).getTextContent());
+
+                for (int j = 0; j < text_chain.getLength(); j++) {
+
+                    System.out.println(">>>" + text_chain.item(j).getNodeName());
+
+                    if (text_chain.item(j).getNodeName().equals("TextLine")) {
+
+                        NodeList text_line = text_chain.item(j).getChildNodes();
+
+                        for (int k = 0; k < text_line.getLength(); k++) {
+                            if (text_line.item(k).getNodeName().equals("TRString")) {
+                                System.out.println(text_line.item(k).getTextContent());
+                                text_line.item(k).setTextContent(text);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        //this.node.getChildNodes().item(2).getChildNodes().item(4).setTextContent(text + "");
     }
 
     /**
@@ -188,4 +261,11 @@ public class Text {
         }
     }
 
+    public boolean isItalic() {
+        return this.textDescription.isItalic();
+    }
+
+    public boolean isBold() {
+        return this.textDescription.isBold();
+    }
 }
