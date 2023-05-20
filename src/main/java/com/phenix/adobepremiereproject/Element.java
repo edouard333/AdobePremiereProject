@@ -3,7 +3,7 @@ package com.phenix.adobepremiereproject;
 /**
  * Classe générique pour tous les éléments.
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 abstract class Element implements AdobeXML {
 

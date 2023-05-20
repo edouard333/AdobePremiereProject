@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.phenix.adobepremiereproject;
 
 import java.io.PrintWriter;
@@ -10,7 +5,7 @@ import java.io.PrintWriter;
 /**
  * Indique ce qui doit être implémenté pour que l'XML Adobe soit OK.
  *
- * @author Edouard
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public interface AdobeXML {
 

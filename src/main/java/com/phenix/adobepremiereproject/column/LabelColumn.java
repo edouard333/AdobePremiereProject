@@ -1,6 +1,5 @@
-package com.phenix.adobepremiereproject.Column;
+package com.phenix.adobepremiereproject.column;
 
-import com.phenix.adobepremiereproject.Column.Column;
 import java.io.PrintWriter;
 
 /**

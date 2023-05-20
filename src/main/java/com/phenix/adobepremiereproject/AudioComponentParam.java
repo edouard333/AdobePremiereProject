@@ -1,15 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.phenix.adobepremiereproject;
 
 import java.io.PrintWriter;
 
 /**
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class AudioComponentParam {
 

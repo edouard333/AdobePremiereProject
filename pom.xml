@@ -24,7 +24,7 @@
                     <archive>
                         <manifest>
                             <!-- S'il n'y avait pas de souci avec la DLL MediaInfo, on devrait avoir: com.phenix.archiveseq. ... -->
-                            <mainClass>com.phenix.adobepremiereproject.Main</mainClass>
+                            <mainClass>com.phenix.adobepremiereproject.test.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

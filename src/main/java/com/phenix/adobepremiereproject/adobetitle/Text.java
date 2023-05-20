@@ -1,11 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package com.phenix.adobepremiereproject.AdobeTitle;
+package com.phenix.adobepremiereproject.adobetitle;
 
-import com.phenix.adobepremiereproject.AdobeTitle.Font.Font;
+import com.phenix.adobepremiereproject.adobetitle.font.Font;
 import java.io.File;
 import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -15,7 +10,7 @@ import org.w3c.dom.NodeList;
 /**
  * Partie qui conserne les textes dans les "Title" Adobe, la balise "TextChain".
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class Text {
 

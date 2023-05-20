@@ -1,9 +1,9 @@
-package com.phenix.adobepremiereproject.AdobeTitle.Font;
+package com.phenix.adobepremiereproject.adobetitle.font;
 
 /**
  * Utilise une font pour un projet AdobePremiere.
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class Font {
 

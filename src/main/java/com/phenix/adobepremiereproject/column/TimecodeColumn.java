@@ -1,8 +1,8 @@
-package com.phenix.adobepremiereproject.Column;
+package com.phenix.adobepremiereproject.column;
 
 /**
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class TimecodeColumn extends Column {
 

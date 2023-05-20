@@ -1,6 +1,6 @@
-package com.phenix.adobepremiereproject.AdobeTitle;
+package com.phenix.adobepremiereproject.adobetitle;
 
-import utils.Base64;
+import com.phenix.adobepremiereproject.util.Base64;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import org.xml.sax.SAXException;
 /**
  * Traite les informations sur un titre Adobe.
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class AdobeTitle {
 

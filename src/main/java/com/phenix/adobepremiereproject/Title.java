@@ -1,17 +1,13 @@
 package com.phenix.adobepremiereproject;
 
-import com.phenix.adobepremiereproject.AdobeTitle.AdobeTitle;
-import com.phenix.adobepremiereproject.AdobeTitle.Text;
+import com.phenix.adobepremiereproject.adobetitle.AdobeTitle;
+import com.phenix.adobepremiereproject.adobetitle.Text;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.zip.DataFormatException;
 
 /**
  * Titrage dans Adobe Premiere.
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class Title extends ElementInSequence {
 

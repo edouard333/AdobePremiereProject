@@ -1,13 +1,16 @@
-package com.phenix.adobepremiereproject;
+package com.phenix.adobepremiereproject.test;
 
-import com.phenix.adobepremiereproject.AdobeTitle.Font.ChicagoFont;
-import com.phenix.adobepremiereproject.AdobeTitle.Text;
+import com.phenix.adobepremiereproject.AdobePremiereProject;
+import com.phenix.adobepremiereproject.Sequence;
+import com.phenix.adobepremiereproject.Title;
+import com.phenix.adobepremiereproject.adobetitle.font.ChicagoFont;
+import com.phenix.adobepremiereproject.adobetitle.Text;
 import java.io.IOException;
 
 /**
  * Test la classe de génération de projet Adobe.
  *
- * @author Edouard
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class Main {
 

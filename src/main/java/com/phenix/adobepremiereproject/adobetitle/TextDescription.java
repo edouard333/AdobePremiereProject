@@ -1,13 +1,13 @@
-package com.phenix.adobepremiereproject.AdobeTitle;
+package com.phenix.adobepremiereproject.adobetitle;
 
-import com.phenix.adobepremiereproject.AdobeTitle.Font.Font;
+import com.phenix.adobepremiereproject.adobetitle.font.Font;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
  * Gère la balise "TextDescription".
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 class TextDescription {
 

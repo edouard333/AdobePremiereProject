@@ -1,6 +1,6 @@
 package com.phenix.adobepremiereproject;
 
-import com.phenix.adobepremiereproject.Column.LabelColumn;
+import com.phenix.adobepremiereproject.column.LabelColumn;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,12 +11,25 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Génère un projet Adobe Premiere Pro CC2017.
  *
- * @author Edouard
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class AdobePremiereProject {
 
@@ -68,9 +81,9 @@ public class AdobePremiereProject {
         OutputStream os = new FileOutputStream(this.tmp_path);
         PrintWriter file = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
 
-        start(file);
-        item(file);
-        end(file);
+        this.start(file);
+        this.item(file);
+        this.end(file);
         file.close();
         os.close();
 
@@ -119,7 +132,6 @@ public class AdobePremiereProject {
                 order++;
             }
         }
-
     }
 
     /**
@@ -1571,7 +1583,7 @@ public class AdobePremiereProject {
             }
         }*/
 
-        /*for (int i = 0; i < this.elements.size(); i++) {
+ /*for (int i = 0; i < this.elements.size(); i++) {
             if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
                 ((Sequence) this.elements.get(i)).videoClip(file);
             }
@@ -1580,6 +1592,115 @@ public class AdobePremiereProject {
         file.append("\n");
     }
 
+    /**
+     * ...
+     *
+     * @return Liste des versions.
+     */
+    public String[] getVersions() {
+        return new String[]{
+            Version.CC2015.toString(),
+            Version.CC2017.toString(),
+            Version.CC2018.toString(),
+            Version.CC2019.toString(),
+            Version.CC2020.toString()
+        };
+    }
+
+    /**
+     * Modifie la version d'un projet Adobe Premiere.
+     *
+     * @param fichier Nom du fichier de projet.
+     * @param version Version qu'on veut pour ce projet.
+     *
+     * @throws FileNotFoundException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     * @throws TransformerConfigurationException
+     */
+    public void downgrade(File fichier, String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
+
+        String name_file = fichier.getAbsolutePath().replace(".prproj", "");
+
+        System.out.println("Nom de fichier : " + fichier.getName());
+
+        String name_file_tmp = name_file + ".tmp";
+
+        decompressGzipFile(name_file + ".prproj", name_file_tmp);
+
+        Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(name_file_tmp));
+
+        NodeList list = xml.getDocumentElement().getChildNodes();
+
+        // Récupère et modifie la valeur actuelle.
+        for (int i = 0; i < list.getLength(); i++) {
+            //System.out.println("Node : " + list.item(i).getNodeName());
+
+            if (list.item(i).getNodeType() == Node.ELEMENT_NODE && list.item(i).getNodeName().equals("Project")) {
+
+                org.w3c.dom.Element balise_project = (org.w3c.dom.Element) list.item(i);
+
+                String attribute_version = balise_project.getAttribute("Version");
+
+                // Si pour l'attribut "Version" il y a une valeur, c'est la bonne balise !
+                if (!attribute_version.equals("")) {
+                    balise_project.setAttribute("Version", version);
+
+                    // On ne doit plus rien faire, donc on peut quitter la boucle.
+                    break;
+                }
+            }
+        }
+
+        // Sauve les changements.
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        DOMSource source = new DOMSource(xml);
+        StreamResult result = new StreamResult(new File(name_file + "2.tmp"));
+        transformer.transform(source, result);
+
+        //For console Output.
+        StreamResult consoleResult = new StreamResult(System.out);
+        transformer.transform(source, consoleResult);
+
+        compressGzipFile(name_file + "2.tmp", name_file + "_CC2017.prproj");
+
+        // On supprime les fichiers temporaires.
+        new File(name_file + ".tmp").delete();
+        new File(name_file + "2.tmp").delete();
+    }
+
+    /**
+     * Décompresser un projet Adobe Premiere.
+     *
+     * @param gzipFile
+     * @param newFile
+     */
+    private static void decompressGzipFile(String gzipFile, String newFile) {
+        try {
+            FileInputStream fis = new FileInputStream(gzipFile);
+            GZIPInputStream gis = new GZIPInputStream(fis);
+            FileOutputStream fos = new FileOutputStream(newFile);
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = gis.read(buffer)) != -1) {
+                fos.write(buffer, 0, len);
+            }
+            //close resources
+            fos.close();
+            gis.close();
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    /**
+     * Prend l'XML Adobe Premiere et en fait le fichier de projet Adobe
+     * Premiere.
+     *
+     * @param file
+     * @param gzipFile
+     */
     private static void compressGzipFile(String file, String gzipFile) {
         try {
             FileInputStream fis = new FileInputStream(file);

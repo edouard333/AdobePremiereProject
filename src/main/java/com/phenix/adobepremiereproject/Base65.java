@@ -1,19 +1,15 @@
 package com.phenix.adobepremiereproject;
 
-import com.phenix.adobepremiereproject.AdobeTitle.AdobeTitle;
-import java.io.ByteArrayOutputStream;
+import com.phenix.adobepremiereproject.adobetitle.AdobeTitle;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.SAXException;
 
 /**
  * TODO : a supprimer
  *
- * @author Edouard
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class Base65 {
 
