@@ -1618,7 +1618,7 @@ public class AdobePremiereProject {
      * @throws SAXException
      * @throws TransformerConfigurationException
      */
-    public void downgrade(File fichier, String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
+    public static void downgrade(File fichier, String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
 
         String name_file = fichier.getAbsolutePath().replace(".prproj", "");
 
