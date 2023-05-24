@@ -8,21 +8,26 @@ import java.io.PrintWriter;
  */
 public class Column {
 
-    private int ObjectID;
+    private final String ColumnType;
 
-    private String ClassID;
+    private final int ObjectID;
 
-    private String Name;
-    private String ID;
+    private final String ClassID;
 
-    private int Type;
-    private int Class;
+    private final String Name;
 
-    private boolean IsHidden;
+    private final String ID;
 
-    private int Width;
+    private final int Type;
 
-    public Column(int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
+    private final int Class;
+
+    private final boolean IsHidden;
+
+    private final int Width;
+
+    public Column(String ColumnType, int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
+        this.ColumnType = ColumnType;
         this.ObjectID = ObjectID;
         this.ClassID = ClassID;
         this.Name = Name;
@@ -66,15 +71,16 @@ public class Column {
     }
 
     protected void toXML(PrintWriter file) {
-        toXML(file, null);
+        this.toXML(file, null);
     }
 
     /**
      *
      * @param file
+     * @param properties
      */
-    public void toXML(PrintWriter file, Class add_properties) {
-        file.append("\t\t\t\t\t<LabelColumn ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
+    protected void toXML(PrintWriter file, PropertiesAdd properties) {
+        file.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
         file.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
         file.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
         file.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
@@ -82,10 +88,9 @@ public class Column {
         file.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
         file.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
 
-        if (add_properties != null) {
+        if (properties != null) {
+            properties.addProperties(file);
         }
-
-        file.append("\t\t\t\t\t</LabelColumn>\n");
+        file.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
     }
-
 }

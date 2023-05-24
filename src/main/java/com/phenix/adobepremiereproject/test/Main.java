@@ -1,11 +1,9 @@
 package com.phenix.adobepremiereproject.test;
 
 import com.phenix.adobepremiereproject.AdobePremiereProject;
-import com.phenix.adobepremiereproject.Sequence;
-import com.phenix.adobepremiereproject.Title;
-import com.phenix.adobepremiereproject.adobetitle.font.ChicagoFont;
-import com.phenix.adobepremiereproject.adobetitle.Text;
-import java.io.IOException;
+import com.phenix.adobepremiereproject.Folder;
+import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
+import java.io.File;
 
 /**
  * Test la classe de génération de projet Adobe.
@@ -17,7 +15,19 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Helloow");
 
-        AdobePremiereProject projet = new AdobePremiereProject("C:\\TMP\\Razzia_FTR_PR422HQ");
+        try {
+            AdobePremiereProject projet = new AdobePremiereProject(new File("C:\\Users\\win10dev\\Desktop\\projet_premiere" + AdobePremiereProject.EXTENSION));
+
+            Folder elements = new Folder("ELEMENTS", true);
+            projet.addElement(elements);
+
+            Folder exports = new Folder("EXPORTS", true);
+            projet.addElement(exports);
+
+            projet.close();
+        } catch (AdobePremiereProjectException exception) {
+            System.out.println("Erreur gén : " + exception.getMessage() + ", " + exception.getClass());
+        }
 
         // --- Elements ---
         /*Folder elements = new Folder("ELEMENTS", true);
@@ -55,7 +65,7 @@ public class Main {
             projet.addElement(new Folder(export, "DVD", false));
             projet.addElement(new Folder(export, "BLU-RAY", false));
         }*/
-        Title titre = new Title("TITRE");
+ /*Title titre = new Title("TITRE");
 
         Text a = new Text();
         a.setText("A");
@@ -79,7 +89,7 @@ public class Main {
         } catch (IOException ex) {
             System.out.println("Erreur : " + ex);
         }
-
+         */
     }
 
 }

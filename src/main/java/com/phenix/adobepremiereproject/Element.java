@@ -7,12 +7,24 @@ package com.phenix.adobepremiereproject;
  */
 abstract class Element implements AdobeXML {
 
+    /**
+     *
+     */
     public static final int FOLDER = 1;
 
+    /**
+     *
+     */
     public static final int SEQUENCE = 2;
 
+    /**
+     *
+     */
     public static final int TITLE = 3;
 
+    /**
+     *
+     */
     private final int type_element;
 
     /**
@@ -31,9 +43,9 @@ abstract class Element implements AdobeXML {
     private final String name;
 
     /**
-     * Quel niveau il est dans la hiérachie.
+     * A quel niveau il est dans la hiérachie.
      */
-    private final int level;
+    private int level;
 
     /**
      * Dire que c'est un élément de type : dossier, séquence, ...
@@ -43,7 +55,7 @@ abstract class Element implements AdobeXML {
     /**
      * A quel dossier parent il est lié.
      */
-    protected final Folder parent;
+    protected Folder parent;
 
     /**
      * Lien avec son parent (unique).
@@ -94,7 +106,7 @@ abstract class Element implements AdobeXML {
     private static int numero_ObjectURef = 0;
 
     public Element(Folder parent, String name, int type_element) {
-        this.parent = parent;
+        this.setParent(parent);
         this.name = name;
 
         // Définit le class ID.
@@ -115,7 +127,23 @@ abstract class Element implements AdobeXML {
 
         this.current_ObjectURef = ObjectURef[numero_ObjectURef];
 
-        // S'il a un parent, on prend celui du prant +1.
+        // On indique qu'on pourra récupérer un nouveau ID de lien.
+        numero_ObjectURef++;
+
+        this.id = numero_element;
+        // Quantième folder créé, on incrément d'office.
+        numero_element++;
+    }
+
+    /**
+     * Définit le parent.
+     *
+     * @param parent
+     */
+    public void setParent(Folder parent) {
+        this.parent = parent;
+
+        // S'il a un parent, on prend celui du parent +1.
         if (parent != null) {
             this.level = parent.getLevel() + 1;
             // On ajoute au parent le lien entre l'enfant et le parent.
@@ -124,12 +152,6 @@ abstract class Element implements AdobeXML {
         else {
             this.level = 0;
         }
-        // On indique qu'on pourra récupérer un nouveau ID de lien.
-        numero_ObjectURef++;
-
-        this.id = numero_element;
-        // Quantième folder créé, on incrément d'office.
-        numero_element++;
     }
 
     /**

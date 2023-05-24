@@ -8,6 +8,12 @@ import java.io.PrintWriter;
  */
 abstract class ElementInSequence extends Element {
 
+    /**
+     *
+     * @param parent
+     * @param name
+     * @param type_element
+     */
     public ElementInSequence(Folder parent, String name, int type_element) {
         super(parent, name, type_element);
     }

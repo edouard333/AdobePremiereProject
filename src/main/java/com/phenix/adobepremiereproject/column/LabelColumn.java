@@ -9,7 +9,7 @@ import java.io.PrintWriter;
 public class LabelColumn extends Column {
 
     public LabelColumn(int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        super(ObjectID, ClassID, Name, ID, Type, Class, IsHidden, Width);
+        super("LabelColumn", ObjectID, ClassID, Name, ID, Type, Class, IsHidden, Width);
     }
 
     @Override

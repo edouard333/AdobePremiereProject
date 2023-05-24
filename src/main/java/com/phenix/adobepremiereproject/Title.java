@@ -11,6 +11,9 @@ import java.io.PrintWriter;
  */
 public class Title extends ElementInSequence {
 
+    /**
+     *
+     */
     private int id;
 
     /**

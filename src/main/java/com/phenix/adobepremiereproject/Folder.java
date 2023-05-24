@@ -21,26 +21,26 @@ public class Folder extends Element {
     private boolean expanded;
 
     /**
-     * Créé un dossier à la racine du projet.
+     * Créé un dossier.
      *
-     * @param name
+     * @param name Nom du dossier.
      */
     public Folder(String name) {
         this(null, name, true);
     }
 
     /**
-     * ...
+     * Créé un dossier à la racine du projet.
      *
-     * @param name
-     * @param expanded
+     * @param name Nom du dossier.
+     * @param expanded Ouvrire le dossier.
      */
     public Folder(String name, boolean expanded) {
         this(null, name, expanded);
     }
 
     /**
-     * Créé un dossier à la racine du projet.
+     * Créé un dossier.
      *
      * @param parent Le dossier parent.
      * @param name Nom du dossier.
@@ -52,7 +52,7 @@ public class Folder extends Element {
     /**
      * Créé un dossier.
      *
-     * @param parent
+     * @param parent Le dossier parent.
      * @param name
      * @param expanded
      */
