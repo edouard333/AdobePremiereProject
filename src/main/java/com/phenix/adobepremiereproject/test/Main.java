@@ -21,6 +21,12 @@ public class Main {
             Folder elements = new Folder("ELEMENTS", true);
             projet.addElement(elements);
 
+            Folder image = new Folder(elements, "IMAGE", true);
+            projet.addElement(image);
+
+            Folder audio = new Folder(elements, "AUDIO", true);
+            projet.addElement(audio);
+
             Folder exports = new Folder("EXPORTS", true);
             projet.addElement(exports);
 

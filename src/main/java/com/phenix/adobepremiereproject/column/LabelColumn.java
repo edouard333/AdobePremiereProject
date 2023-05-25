@@ -8,8 +8,8 @@ import java.io.PrintWriter;
  */
 public class LabelColumn extends Column {
 
-    public LabelColumn(int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        super("LabelColumn", ObjectID, ClassID, Name, ID, Type, Class, IsHidden, Width);
+    public LabelColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
+        super("LabelColumn", ObjectID, "0b8cc011-65dd-4b47-aad9-751ca2891f4a", Name, ID, Type, Class, IsHidden, Width);
     }
 
     @Override

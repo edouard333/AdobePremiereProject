@@ -1,18 +1,25 @@
 package com.phenix.adobepremiereproject;
 
+import com.phenix.adobepremiereproject.column.BoolPropertyColumn;
+import com.phenix.adobepremiereproject.column.Column;
+import com.phenix.adobepremiereproject.column.CaptureSettingsColumn;
+import com.phenix.adobepremiereproject.column.EditTextColumn;
 import com.phenix.adobepremiereproject.column.LabelColumn;
+import com.phenix.adobepremiereproject.column.NameColumn;
+import com.phenix.adobepremiereproject.column.SelectedItemsColumn;
+import com.phenix.adobepremiereproject.column.StringColumn;
+import com.phenix.adobepremiereproject.column.TimecodeColumn;
+import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
+import com.phenix.adobepremiereproject.setting.CompileSettings;
+import com.phenix.adobepremiereproject.util.Utils;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
@@ -33,29 +40,29 @@ import org.xml.sax.SAXException;
  */
 public class AdobePremiereProject {
 
+    public static final String EXTENSION = ".prproj";
+
+    public static final String EXTENSION_XML = ".xml";
+
+    public static final String EXTENSION_TMP = ".tmp";
+
     /**
      * Chemin et nom du fichier souhaité.
      */
-    private final String pathname;
-
-    /**
-     * Où se trouvera le fichier XML temporaire.
-     */
-    private final String tmp_path;
+    private final File fichier;
 
     /**
      * Les éléments du projet.
      */
-    private ArrayList<Element> elements;
+    private final ArrayList<Element> elements;
 
     /**
      * Créé le fichier de XML qui se retrouvera dans le ZIP.
      *
-     * @param pathname Lieu et nom de fichier
+     * @param fichier Lieu et nom de fichier
      */
-    public AdobePremiereProject(String pathname) {
-        this.pathname = pathname;
-        this.tmp_path = pathname + ".tmp";
+    public AdobePremiereProject(File fichier) {
+        this.fichier = fichier;
 
         // Initialise le tableau des dossiers
         this.elements = new ArrayList<Element>();
@@ -70,28 +77,37 @@ public class AdobePremiereProject {
         this.elements.add(element);
     }
 
+    private File getFichierXMLTemporaire() {
+        return new File(this.fichier.getAbsolutePath().replace(EXTENSION, EXTENSION_TMP));
+    }
+
     /**
+     * Ecrit le fichier.
      *
-     * @throws FileNotFoundException
-     * @throws java.io.UnsupportedEncodingException
+     * @throws AdobePremiereProjectException
      */
-    public void close() throws FileNotFoundException, UnsupportedEncodingException, IOException {
+    public void close() throws AdobePremiereProjectException {
 
-        // Cloture le fichier temporaire.
-        OutputStream os = new FileOutputStream(this.tmp_path);
-        PrintWriter file = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
+        try {
+            // Cloture le fichier temporaire.
+            File fichier_tmp = this.getFichierXMLTemporaire();
+            OutputStream os = new FileOutputStream(fichier_tmp);
+            PrintWriter file = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
 
-        this.start(file);
-        this.item(file);
-        this.end(file);
-        file.close();
-        os.close();
+            this.start(file);
+            this.item(file);
+            this.end(file);
+            file.close();
+            os.close();
 
-        // Prend le fichier XML et le met dans le GZIP.
-        compressGzipFile(this.tmp_path, this.pathname + ".prproj");
+            // Prend le fichier XML et le met dans le GZIP.
+            Utils.compressGzipFile(fichier_tmp, fichier);
 
-        // Supprime le fichier temporaire.
-        new File(this.tmp_path).delete();
+            // Supprime le fichier temporaire.
+            fichier_tmp.delete();
+        } catch (IOException exception) {
+            throw new AdobePremiereProjectException(exception.getMessage());
+        }
     }
 
     /**
@@ -121,7 +137,7 @@ public class AdobePremiereProject {
     /**
      * Créé les dossiers.
      *
-     * @param file Flux où il faut écrire
+     * @param file Flux où il faut écrire.
      * @param level Niveau de dossier.
      */
     private void binProject(PrintWriter file, int level) {
@@ -135,15 +151,67 @@ public class AdobePremiereProject {
     }
 
     /**
-     * Ecrit la structure du projet, le début.
      *
      * @param file
+     * @param object_id
+     * @param object_ref
+     * @param id_project_view_state
+     * @param id_original_project_view_state
      */
-    private void start(PrintWriter file) {
+    private void ProjectViewState(PrintWriter file, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
+        file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
+        file.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
+        file.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
+        file.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>" + ProjectViewStateOriginalID + "</ProjectViewState.OriginalID>\n");
+        file.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
+        file.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
+        file.append("\t\t\t\t\t\t<PreviewView.Visible>false</PreviewView.Visible>\n");
+        file.append("\t\t\t\t\t\t<ContentView.LastViewed>" + LastViewed + "</ContentView.LastViewed>\n");
+        file.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>" + IconViewThumbnailSize + "</IconView.Thumbnail.Size>\n");
+        file.append("\t\t\t\t\t\t<FreeformView.Scale>1</FreeformView.Scale>\n");
+        file.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
+        file.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
+        file.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
+        file.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
+        file.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
+        file.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
+        file.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
+        file.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
+        file.append("\t\t\t\t\t\t<ColumnListContents.Version>15</ColumnListContents.Version>\n");
+        file.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
+        file.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
+        file.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
+        file.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
+        file.append("\t\t\t\t\t\t<Project.CloudSyncEnabled>false</Project.CloudSyncEnabled>\n");
+        file.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
+        file.append("\t\t\t\t\t</ProjectViewState>\n");
+    }
+
+    private void ColumnList(PrintWriter file, int ObjectID, int column_index_max, int delta) {
+        file.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
+        file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
+
+        for (int i = 0; i < column_index_max; i++) {
+            file.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + delta) + "\"/>\n");
+        }
+
+        file.append("\t\t\t\t\t\t</Columns>\n");
+        file.append("\t\t\t\t\t</ColumnList>\n");
+    }
+
+    /**
+     * Ecrit la structure du projet, le début.
+     *
+     * @param file Flux où il faut écrire.
+     */
+    private void start(PrintWriter file) throws AdobePremiereProjectException {
+
+        String workspace_name = "Formation";
+
         file.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
         file.append("<PremiereData Version=\"3\">\n");
         file.append("\t<Project ObjectRef=\"1\"/>\n");
-        file.append("\t<Project ObjectID=\"1\" ClassID=\"62ad66dd-0dcd-42da-a660-6d8fbde94876\" Version=\"32\">\n");
+        file.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2022 + "\">\n");
         file.append("\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t<Properties Version=\"1\">\n");
         file.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
@@ -157,866 +225,1166 @@ public class AdobePremiereProject {
         file.append("\t\t\t\t\t\t\t<Second ObjectRef=\"2\"/>\n");
         file.append("\t\t\t\t\t\t</ProjectViewState>\n");
         file.append("\t\t\t\t\t</ProjectViewStates>\n");
-        file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"1\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"2\">\n");////////////
-        file.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"3\"/>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ID>361ff028-e258-4162-a70b-ddea24afb013</ProjectViewState.ID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>00000000-0000-0000-0000-000000000000</ProjectViewState.OriginalID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
-        file.append("\t\t\t\t\t\t<PreviewView.Visible>true</PreviewView.Visible>\n");
-        file.append("\t\t\t\t\t\t<ContentView.LastViewed>1</ContentView.LastViewed>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>150</IconView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
-        file.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
-        file.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
-        file.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
-        file.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<ColumnListContents.Version>11</ColumnListContents.Version>\n");
-        file.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
-        file.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t</ProjectViewState>\n");
-        file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"2\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"2\">\n");
-        file.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"4\"/>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ID>3625b009-0f43-4db8-8f24-6be33ebbaa5f</ProjectViewState.ID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>361ff028-e258-4162-a70b-ddea24afb013</ProjectViewState.OriginalID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
-        file.append("\t\t\t\t\t\t<PreviewView.Visible>true</PreviewView.Visible>\n");
-        file.append("\t\t\t\t\t\t<ContentView.LastViewed>1</ContentView.LastViewed>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>200</IconView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
-        file.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
-        file.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
-        file.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
-        file.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<ColumnListContents.Version>11</ColumnListContents.Version>\n");
-        file.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
-        file.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t</ProjectViewState>\n");
-        file.append("\t\t\t\t\t<ColumnList ObjectID=\"3\" ClassID=\"a1c709cd-35df-4821-8200-03565d374155\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
 
-        for (int i = 0; i <= 43; i++) {
-            file.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + 5) + "\"/>\n");
-        }
+        this.ProjectViewState(file, 1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1");
+        this.ProjectViewState(file, 2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200");
 
-        file.append("\t\t\t\t\t\t</Columns>\n");
-        file.append("\t\t\t\t\t</ColumnList>\n");
-        file.append("\t\t\t\t\t<ColumnList ObjectID=\"4\" ClassID=\"a1c709cd-35df-4821-8200-03565d374155\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
+        int column_index_max_exclu = 55;
+        int delta = 5;
 
-        for (int i = 0; i <= 40; i++) {
-            file.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + 49) + "\"/>\n");
-        }
-        file.append("\t\t\t\t\t\t</Columns>\n");
-        file.append("\t\t\t\t\t</ColumnList>\n");
-        /*file.append("\t\t\t\t\t<LabelColumn ObjectID=\"5\" ClassID=\"0b8cc011-65dd-4b47-aad9-751ca2891f4a\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Libellé</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Label</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>20</Column.Width>\n");
-        file.append("\t\t\t\t\t</LabelColumn>\n");*/
+        this.ColumnList(file, 3, column_index_max_exclu, delta);
+        this.ColumnList(file, 4, column_index_max_exclu, column_index_max_exclu + delta);
 
-        LabelColumn ob5 = new LabelColumn(
-                5,
-                "0b8cc011-65dd-4b47-aad9-751ca2891f4a",
+        ArrayList<Column> liste_column = new ArrayList<Column>();
+
+        int object_id = 4;
+
+        liste_column.add(new LabelColumn(
+                ++object_id,
                 "Libellé",
                 "Column.PropertyText.Label",
-                0,
+                17,
                 1,
                 false,
-                20
-        );
-
-        ob5.toXML(file);
-
-        file.append("\t\t\t\t\t<SelectedItemsColumn ObjectID=\"6\" ClassID=\"88bcfb15-97a7-49ed-ac05-7d3ce637d2a0\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Sélectionné(s)</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SelectedItems</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>26</Column.Width>\n");
-        file.append("\t\t\t\t\t</SelectedItemsColumn>\n");
-
-        file.append("\t\t\t\t\t<NameColumn ObjectID=\"7\" ClassID=\"0547b302-c849-46b3-ae2a-b245e9dd59eb\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Nom</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.Name</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>200</Column.Width>\n");
-        file.append("\t\t\t\t\t</NameColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"8\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Type de média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaType</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>23</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"9\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Fréquence d'images</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaTimebase</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>22</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"10\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Début du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaStart</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>21</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"11\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Fin du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaEnd</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>20</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"12\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>19</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"13\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point d'entrée vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoInPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>35</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"14\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point de sortie vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoOutPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>36</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"15\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>33</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"16\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point d'entrée audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioInPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>3</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"17\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point de sortie audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioOutPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>4</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"18\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>1</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"19\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Début du sous-élément</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.SubclipStart</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>39</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"20\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Fin du sous-élément</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.SubclipEnd</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>40</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"21\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée du sous-élément</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.SubclipDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>41</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"22\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Infos vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoInfo</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>34</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"23\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Infos audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioInfo</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>2</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>150</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"24\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Utilisation vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoUsage</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>38</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"25\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Utilisation audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioUsage</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>6</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"26\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Nom de la bande</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.TapeName</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>30</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"27\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Description</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Description</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>15</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"28\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Commentaire</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Comment</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>10</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"29\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Remarque</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.LogNote</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>18</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"30\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Chemin d'accès du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.FilePath</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>16</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<CaptureSettingsColumn ObjectID=\"31\" ClassID=\"97dc9c98-3a27-4320-91c3-cc222addeef7\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Réglages d'acquisition</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.CaptureSettings</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</CaptureSettingsColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"32\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Etat</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Status</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>29</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"33\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Propriétés off-line</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.OfflineProperties</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>25</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"34\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Scène</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Scene</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>27</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"35\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Plan</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Shot</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>28</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"36\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Client</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Client</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>9</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<BoolPropertyColumn ObjectID=\"37\" ClassID=\"1d4dd772-4985-4f43-874a-84b2b566e724\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Bon(ne)</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyBool.Good</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t\t<Column.Property.Key>Column.PropertyBool.Good</Column.Property.Key>\n");
-        file.append("\t\t\t\t\t\t<Column.Editable.Key>true</Column.Editable.Key>\n");
-        file.append("\t\t\t\t\t</BoolPropertyColumn>\n");
-
-        file.append("\t\t\t\t\t<BoolPropertyColumn ObjectID=\"38\" ClassID=\"1d4dd772-4985-4f43-874a-84b2b566e724\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Masquer</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyBool.Hide</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t\t<Column.Property.Key>Column.PropertyBool.Hide</Column.Property.Key>\n");
-        file.append("\t\t\t\t\t\t<Column.Editable.Key>true</Column.Editable.Key>\n");
-        file.append("\t\t\t\t\t</BoolPropertyColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"39\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Code temporel sonore</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.SoundTimeCode</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>42</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"40\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Déroul. sonore</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SoundRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>43</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"41\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmCameraRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>47</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"42\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule quotidienne</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmDailyRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>48</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"43\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule labo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmLabRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>49</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"44\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Code d’identification</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmKeycode</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>50</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"45\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Décalage de synchronisation</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SyncOffset</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>44</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"46\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Codec vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Codec</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>45</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"47\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Ordre des trames</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FieldOrder</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>46</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"48\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Doublure</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Proxy</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>51</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<LabelColumn ObjectID=\"49\" ClassID=\"0b8cc011-65dd-4b47-aad9-751ca2891f4a\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Libellé</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Label</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>26</Column.Width>\n");
-        file.append("\t\t\t\t\t</LabelColumn>\n");
-
-        file.append("\t\t\t\t\t<NameColumn ObjectID=\"50\" ClassID=\"0547b302-c849-46b3-ae2a-b245e9dd59eb\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Nom</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.Name</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>481</Column.Width>\n");
-        file.append("\t\t\t\t\t</NameColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"51\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Type de média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaType</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>23</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"52\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Fréquence d'images</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaTimebase</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>22</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"53\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Début du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaStart</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>21</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"54\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Fin du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaEnd</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>20</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"55\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.MediaDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>19</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"56\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point d'entrée vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoInPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>35</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"57\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point de sortie vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoOutPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>36</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"58\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>33</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"59\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point d'entrée audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioInPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>3</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"60\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Point de sortie audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioOutPoint</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>4</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"61\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Durée audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioDuration</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>1</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"62\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Infos vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoInfo</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>34</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"63\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Infos audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioInfo</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>2</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>296</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"64\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Utilisation vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.VideoUsage</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>38</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"65\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Utilisation audio</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.AudioUsage</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>6</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"66\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Nom de la bande</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.TapeName</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>30</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"67\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Description</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Description</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>15</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"68\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Commentaire</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Comment</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>10</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"69\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Remarque</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.LogNote</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>18</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"70\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Chemin d'accès du média</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.FilePath</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>16</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>492</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<CaptureSettingsColumn ObjectID=\"71\" ClassID=\"97dc9c98-3a27-4320-91c3-cc222addeef7\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Réglages d'acquisition</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.CaptureSettings</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</CaptureSettingsColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"72\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Etat</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Status</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>29</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"73\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Propriétés off-line</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.OfflineProperties</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>25</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"74\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Scène</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Scene</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>27</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"75\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Client</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Client</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>9</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<BoolPropertyColumn ObjectID=\"76\" ClassID=\"1d4dd772-4985-4f43-874a-84b2b566e724\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Bon(ne)</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyBool.Good</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t\t<Column.Property.Key>Column.PropertyBool.Good</Column.Property.Key>\n");
-        file.append("\t\t\t\t\t\t<Column.Editable.Key>true</Column.Editable.Key>\n");
-        file.append("\t\t\t\t\t</BoolPropertyColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"77\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Plan</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Shot</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>28</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>60</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<TimecodeColumn ObjectID=\"78\" ClassID=\"9c9279d2-355c-487b-b644-0698b42e32f9\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Code temporel sonore</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.Intrinsic.SoundTimeCode</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>42</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</TimecodeColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"79\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Déroul. sonore</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SoundRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>43</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"80\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Décalage de synchronisation</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SyncOffset</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>44</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"81\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Codec vidéo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Codec</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>45</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"82\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Ordre des trames</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FieldOrder</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>46</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>false</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<BoolPropertyColumn ObjectID=\"83\" ClassID=\"1d4dd772-4985-4f43-874a-84b2b566e724\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Masquer</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyBool.Hide</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>2</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t\t<Column.Property.Key>Column.PropertyBool.Hide</Column.Property.Key>\n");
-        file.append("\t\t\t\t\t\t<Column.Editable.Key>true</Column.Editable.Key>\n");
-        file.append("\t\t\t\t\t</BoolPropertyColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"84\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmCameraRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>47</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"85\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule quotidienne</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmDailyRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>48</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"86\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Pellicule labo</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmLabRoll</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>49</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<EditTextColumn ObjectID=\"87\" ClassID=\"e9f21f9a-b686-440c-83f4-da1685c160ad\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Code d’identification</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.FilmKeycode</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>50</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</EditTextColumn>\n");
-
-        file.append("\t\t\t\t\t<StringColumn ObjectID=\"88\" ClassID=\"f0ef302d-babc-4f75-9975-923a8ca28d7e\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Doublure</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.Proxy</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>51</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>0</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>100</Column.Width>\n");
-        file.append("\t\t\t\t\t</StringColumn>\n");
-
-        file.append("\t\t\t\t\t<SelectedItemsColumn ObjectID=\"89\" ClassID=\"88bcfb15-97a7-49ed-ac05-7d3ce637d2a0\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>Sélectionné(s)</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>Column.PropertyText.SelectedItems</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>0</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>1</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>true</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>26</Column.Width>\n");
-        file.append("\t\t\t\t\t</SelectedItemsColumn>\n");
+                26
+        ));
+
+        liste_column.add(new SelectedItemsColumn(
+                ++object_id,
+                "Sélectionné(s)",
+                "Column.PropertyText.SelectedItems",
+                0,
+                1,
+                true,
+                26
+        ));
+
+        liste_column.add(new NameColumn(
+                ++object_id,
+                "Nom",
+                "Column.Intrinsic.Name",
+                0,
+                0,
+                false,
+                200
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Type de média",
+                "Column.Intrinsic.MediaType",
+                23,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Fréquence d'images",
+                "Column.Intrinsic.MediaTimebase",
+                22,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Début du média",
+                "Column.Intrinsic.MediaStart",
+                21,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Fin du média",
+                "Column.Intrinsic.MediaEnd",
+                20,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée du média",
+                "Column.Intrinsic.MediaDuration",
+                19,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point d'entrée vidéo",
+                "Column.Intrinsic.VideoInPoint",
+                35,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point de sortie vidéo",
+                "Column.Intrinsic.VideoOutPoint",
+                36,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée vidéo",
+                "Column.Intrinsic.VideoDuration",
+                33,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point d'entrée audio",
+                "Column.Intrinsic.AudioInPoint",
+                3,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point de sortie audio",
+                "Column.Intrinsic.AudioOutPoint",
+                4,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée audio",
+                "Column.Intrinsic.AudioDuration",
+                1,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Début du sous-élément",
+                "Column.Intrinsic.SubclipStart",
+                39,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Fin du sous-élément",
+                "Column.Intrinsic.SubclipEnd",
+                40,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée du sous-élément",
+                "Column.Intrinsic.SubclipDuration",
+                41,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Infos vidéo",
+                "Column.Intrinsic.VideoInfo",
+                34,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Infos audio",
+                "Column.Intrinsic.AudioInfo",
+                2,
+                0,
+                false,
+                150
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Utilisation vidéo",
+                "Column.Intrinsic.VideoUsage",
+                38,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Utilisation audio",
+                "Column.Intrinsic.AudioUsage",
+                6,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom de la bande",
+                "Column.Intrinsic.TapeName",
+                30,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Description",
+                "Column.PropertyText.Description",
+                15,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Commentaire",
+                "Column.PropertyText.Comment",
+                10,
+                1,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Remarque",
+                "Column.Intrinsic.LogNote",
+                18,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Chemin d'accès du média",
+                "Column.Intrinsic.FilePath",
+                16,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new CaptureSettingsColumn(
+                ++object_id,
+                "Réglages d'acquisition",
+                "Column.PropertyText.CaptureSettings",
+                0,
+                2,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Etat",
+                "Column.PropertyText.Status",
+                29,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Propriétés off-line",
+                "Column.PropertyText.OfflineProperties",
+                25,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Nom du fichier média",
+                "Column.Intrinsic.FileName",
+                58,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Scène",
+                "Column.PropertyText.Scene",
+                27,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Plan",
+                "Column.PropertyText.Shot",
+                28,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Client",
+                "Column.PropertyText.Client",
+                9,
+                1,
+                true,
+                100
+        ));
+
+        liste_column.add(new BoolPropertyColumn(
+                ++object_id,
+                "Bon(ne)",
+                "Column.PropertyBool.Good",
+                0,
+                2,
+                false,
+                100,
+                "Column.PropertyBool.Good",
+                "true"
+        ));
+
+        liste_column.add(new BoolPropertyColumn(
+                ++object_id,
+                "Masquer",
+                "Column.PropertyBool.Hide",
+                0,
+                2,
+                false,
+                100,
+                "Column.PropertyBool.Hide",
+                "true"
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Code temporel sonore",
+                "Column.Intrinsic.SoundTimeCode",
+                42,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Déroul. sonore",
+                "Column.PropertyText.SoundRoll",
+                43,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule",
+                "Column.PropertyText.FilmCameraRoll",
+                47,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule quotidienne",
+                "Column.PropertyText.FilmDailyRoll",
+                48,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule labo",
+                "Column.PropertyText.FilmLabRoll",
+                49,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Code d’identification",
+                "Column.PropertyText.FilmKeycode",
+                50,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Décalage de synchronisation",
+                "Column.PropertyText.SyncOffset",
+                44,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Codec vidéo",
+                "Column.PropertyText.Codec",
+                45,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Ordre des trames",
+                "Column.PropertyText.FieldOrder",
+                46,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Doublure",
+                "Column.PropertyText.Proxy",
+                51,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Projet verrouillé",
+                "Column.PropertyText.BinLocked",
+                52,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "ASC_SOP",
+                "Column.PropertyText.ASCSOP",
+                53,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "ASC_SAT",
+                "Column.PropertyText.ASCSAT",
+                54,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT",
+                "Column.PropertyText.Lut",
+                55,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT1",
+                "Column.PropertyText.Lut1",
+                56,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT2",
+                "Column.PropertyText.Lut2",
+                57,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom du fichier vidéo d’origine",
+                "Column.PropertyText.OriginalVideoFileName",
+                59,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom du fichier audio d’origine",
+                "Column.PropertyText.OriginalAudioFileName",
+                60,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Chemin d’accès au fichier de média de doublure",
+                "Column.Intrinsic.ProxyFilePath",
+                37,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Nom du fichier de média de doublure",
+                "Column.Intrinsic.ProxyFileName",
+                61,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new LabelColumn(
+                ++object_id,
+                "Libellé",
+                "Column.PropertyText.Label",
+                17,
+                1,
+                false,
+                26
+        ));
+
+        liste_column.add(new SelectedItemsColumn(
+                ++object_id,
+                "Sélectionné(s)",
+                "Column.PropertyText.SelectedItems",
+                0,
+                1,
+                true,
+                26
+        ));
+
+        liste_column.add(new NameColumn(
+                ++object_id,
+                "Nom",
+                "Column.Intrinsic.Name",
+                0,
+                0,
+                false,
+                333
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Type de média",
+                "Column.Intrinsic.MediaType",
+                23,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Fréquence d'images",
+                "Column.Intrinsic.MediaTimebase",
+                22,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Début du média",
+                "Column.Intrinsic.MediaStart",
+                21,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Fin du média",
+                "Column.Intrinsic.MediaEnd",
+                20,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée du média",
+                "Column.Intrinsic.MediaDuration",
+                19,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point d'entrée vidéo",
+                "Column.Intrinsic.VideoInPoint",
+                35,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point de sortie vidéo",
+                "Column.Intrinsic.VideoOutPoint",
+                36,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée vidéo",
+                "Column.Intrinsic.VideoDuration",
+                33,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point d'entrée audio",
+                "Column.Intrinsic.AudioInPoint",
+                3,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Point de sortie audio",
+                "Column.Intrinsic.AudioOutPoint",
+                4,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée audio",
+                "Column.Intrinsic.AudioDuration",
+                1,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Début du sous-élément",
+                "Column.Intrinsic.SubclipStart",
+                39,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Fin du sous-élément",
+                "Column.Intrinsic.SubclipEnd",
+                40,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Durée du sous-élément",
+                "Column.Intrinsic.SubclipDuration",
+                41,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Infos vidéo",
+                "Column.Intrinsic.VideoInfo",
+                34,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Infos audio",
+                "Column.Intrinsic.AudioInfo",
+                2,
+                0,
+                false,
+                150
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Utilisation vidéo",
+                "Column.Intrinsic.VideoUsage",
+                38,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Utilisation audio",
+                "Column.Intrinsic.AudioUsage",
+                6,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom de la bande",
+                "Column.Intrinsic.TapeName",
+                30,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Description",
+                "Column.PropertyText.Description",
+                15,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Commentaire",
+                "Column.PropertyText.Comment",
+                10,
+                1,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Remarque",
+                "Column.Intrinsic.LogNote",
+                18,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Chemin d'accès du média",
+                "Column.Intrinsic.FilePath",
+                16,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new CaptureSettingsColumn(
+                ++object_id,
+                "Réglages d'acquisition",
+                "Column.PropertyText.CaptureSettings",
+                0,
+                2,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Etat",
+                "Column.PropertyText.Status",
+                29,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Propriétés off-line",
+                "Column.PropertyText.OfflineProperties",
+                25,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Nom du fichier média",
+                "Column.Intrinsic.FileName",
+                58,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Scène",
+                "Column.PropertyText.Scene",
+                27,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Plan",
+                "Column.PropertyText.Shot",
+                28,
+                0,
+                false,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Client",
+                "Column.PropertyText.Client",
+                9,
+                1,
+                true,
+                100
+        ));
+
+        liste_column.add(new BoolPropertyColumn(
+                ++object_id,
+                "Bon(ne)",
+                "Column.PropertyBool.Good",
+                0,
+                2,
+                false,
+                100,
+                "Column.PropertyBool.Good",
+                "true"
+        ));
+
+        liste_column.add(new BoolPropertyColumn(
+                ++object_id,
+                "Masquer",
+                "Column.PropertyBool.Hide",
+                0,
+                2,
+                false,
+                100,
+                "Column.PropertyBool.Hide",
+                "true"
+        ));
+
+        liste_column.add(new TimecodeColumn(
+                ++object_id,
+                "Code temporel sonore",
+                "Column.Intrinsic.SoundTimeCode",
+                42,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Déroul. sonore",
+                "Column.PropertyText.SoundRoll",
+                43,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule",
+                "Column.PropertyText.FilmCameraRoll",
+                47,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule quotidienne",
+                "Column.PropertyText.FilmDailyRoll",
+                48,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Pellicule labo",
+                "Column.PropertyText.FilmLabRoll",
+                49,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Code d’identification",
+                "Column.PropertyText.FilmKeycode",
+                50,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Décalage de synchronisation",
+                "Column.PropertyText.SyncOffset",
+                44,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Codec vidéo",
+                "Column.PropertyText.Codec",
+                45,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Ordre des trames",
+                "Column.PropertyText.FieldOrder",
+                46,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Doublure",
+                "Column.PropertyText.Proxy",
+                51,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Projet verrouillé",
+                "Column.PropertyText.BinLocked",
+                52,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "ASC_SOP",
+                "Column.PropertyText.ASCSOP",
+                53,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "ASC_SAT",
+                "Column.PropertyText.ASCSAT",
+                54,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT",
+                "Column.PropertyText.Lut",
+                55,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT1",
+                "Column.PropertyText.Lut1",
+                56,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "LUT2",
+                "Column.PropertyText.Lut2",
+                57,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom du fichier vidéo d’origine",
+                "Column.PropertyText.OriginalVideoFileName",
+                59,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new EditTextColumn(
+                ++object_id,
+                "Nom du fichier audio d’origine",
+                "Column.PropertyText.OriginalAudioFileName",
+                60,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Chemin d’accès au fichier de média de doublure",
+                "Column.Intrinsic.ProxyFilePath",
+                37,
+                0,
+                true,
+                100
+        ));
+
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Nom du fichier de média de doublure",
+                "Column.Intrinsic.ProxyFileName",
+                61,
+                0,
+                true,
+                100
+        ));
+
+        for (int i = 0; i < liste_column.size(); i++) {
+
+            Column column = liste_column.get(i);
+            String nom_classe_column = column.getClass().getName();
+
+            if (nom_classe_column.equals(CaptureSettingsColumn.class.getName())) {
+                ((CaptureSettingsColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(EditTextColumn.class.getName())) {
+                ((EditTextColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(LabelColumn.class.getName())) {
+                ((LabelColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(SelectedItemsColumn.class.getName())) {
+                ((SelectedItemsColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(NameColumn.class.getName())) {
+                ((NameColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(StringColumn.class.getName())) {
+                ((StringColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(TimecodeColumn.class.getName())) {
+                ((TimecodeColumn) column).toXML(file);
+            } else if (nom_classe_column.equals(BoolPropertyColumn.class.getName())) {
+                ((BoolPropertyColumn) column).toXML(file);
+            } else {
+                throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'");
+            }
+
+        }
+
         file.append("\t\t\t\t</ProjectViewState.List>\n");
-        file.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
-        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (CUDA)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
-        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>7ee0ab59-822d-44cc-ac10-16279d041016</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
-        file.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>7ee0ab59-822d-44cc-ac10-16279d041016</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
+        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
+        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
+        file.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
 
         if (Title.getTitleNumber() > 1) {
             file.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
         }
 
-        file.append("\t\t\t\t<MZ.BuildVersion.Created>11.0.0x154 - 06-02-21 17:03:33</MZ.BuildVersion.Created>\n");
-        file.append("\t\t\t\t<MZ.BuildVersion.Modified>11.0.0x154 - 06-02-21 17:03:33</MZ.BuildVersion.Modified>\n");
+        file.append("\t\t\t\t<MZ.BuildVersion.Created>23.2.0x69 - Wed Mar  1 16:01:33 2023</MZ.BuildVersion.Created>\n");
+        file.append("\t\t\t\t<MZ.BuildVersion.Modified>23.2.0x69 - Wed May 24 11:07:03 2023</MZ.BuildVersion.Modified>\n");
 
         // S'il y a une séquence dans le projet.
         if (Sequence.getSequenceNumber() > 1) {
@@ -1027,13 +1395,13 @@ public class AdobePremiereProject {
         file.append("\t\t\t\t<MZ.Prefs.UseProjectItemOrMasterClipProperiesForTrackItems>false</MZ.Prefs.UseProjectItemOrMasterClipProperiesForTrackItems>\n");
         file.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
         file.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
-        file.append("\t\t\t\t<MZ.Project.WorkspaceName>Montage</MZ.Project.WorkspaceName>\n");
+        file.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspace_name + "</MZ.Project.WorkspaceName>\n");
         file.append("\t\t\t\t<ProjectViewState.Version>2</ProjectViewState.Version>\n");
         file.append("\t\t\t\t<TL.PJSnappingState>1</TL.PJSnappingState>\n");
-        file.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>\\\\?\\C:\\Users\\Edouard\\Desktop\\FHD.prproj</project.settings.lastknowngoodprojectpath>\n");
+        file.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>/Users/macdevpro/Desktop/Projet-example.prproj</project.settings.lastknowngoodprojectpath>\n");
         file.append("\t\t\t</Properties>\n");
         file.append("\t\t</Node>\n");
-        file.append("\t\t<RootProjectItem ObjectURef=\"be9334eb-820a-4fcd-ae15-f40643a32f37\"/>\n");
+        file.append("\t\t<RootProjectItem ObjectURef=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\"/>\n");
         file.append("\t\t<ProjectSettings ObjectRef=\"3\"/>\n");
         file.append("\t\t<MovieCompileSettings ObjectRef=\"4\"/>\n");
         file.append("\t\t<StillCompileSettings ObjectRef=\"5\"/>\n");
@@ -1046,11 +1414,11 @@ public class AdobePremiereProject {
         file.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
         file.append("\t\t<NextID>1000001</NextID>\n");
         file.append("\t</Project>\n");
-        file.append("\t<RootProjectItem ObjectUID=\"be9334eb-820a-4fcd-ae15-f40643a32f37\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
+        file.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
         file.append("\t\t<ProjectItem Version=\"1\">\n");
         file.append("\t\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t\t<Properties Version=\"1\">\n");
-        file.append("\t\t\t\t\t<list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>true</list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>\n");
+        file.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
         file.append("\t\t\t\t</Properties>\n");
         file.append("\t\t\t\t<ID>1000000</ID>\n");
         file.append("\t\t\t</Node>\n");
@@ -1067,7 +1435,7 @@ public class AdobePremiereProject {
     private void end(PrintWriter file) {
         file.append("\t\t</ProjectItemContainer>\n");
         file.append("\t</RootProjectItem>\n");
-        file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"17\">\n");
+        file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"18\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
         file.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
         file.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
@@ -1084,114 +1452,46 @@ public class AdobePremiereProject {
         file.append("\t\t<TitleSafeWidth>20</TitleSafeWidth>\n");
         file.append("\t\t<TitleSafeHeight>20</TitleSafeHeight>\n");
         file.append("\t\t<ShouldScaleMedia>false</ShouldScaleMedia>\n");
+        file.append("\t\t<UsePreviewCache>false</UsePreviewCache>\n");
+        file.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
         file.append("\t</ProjectSettings>\n");
-        file.append("\t<CompileSettings ObjectID=\"4\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"18\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"19\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
-        file.append("\t<CompileSettings ObjectID=\"5\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"20\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"21\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
-        file.append("\t<CompileSettings ObjectID=\"6\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"22\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"23\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
-        file.append("\t<CompileSettings ObjectID=\"7\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"24\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"25\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
-        file.append("\t<CompileSettings ObjectID=\"8\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"26\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"27\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>1061109567</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>1096173910</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
+
+        ArrayList<CompileSettings> liste_compile_settings = new ArrayList<CompileSettings>();
+
+        liste_compile_settings.add(new CompileSettings(4, 18, 19));
+        liste_compile_settings.add(new CompileSettings(5, 20, 21));
+        liste_compile_settings.add(new CompileSettings(6, 22, 23));
+        liste_compile_settings.add(new CompileSettings(7, 24, 25));
+        liste_compile_settings.add(new CompileSettings(8, 26, 27));
+
+        for (int i = 0; i < liste_compile_settings.size(); i++) {
+            liste_compile_settings.get(i).toXML(file);
+        }
+
+        String same_as_project = "SameAsProject";
+
         file.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
-        file.append("\t\t<CapturedVideoLocation0>SameAsProject</CapturedVideoLocation0>\n");
-        file.append("\t\t<CapturedAudioLocation0>SameAsProject</CapturedAudioLocation0>\n");
-        file.append("\t\t<VideoPreviewLocation0>SameAsProject</VideoPreviewLocation0>\n");
-        file.append("\t\t<AudioPreviewLocation0>SameAsProject</AudioPreviewLocation0>\n");
-        file.append("\t\t<AutoSaveLocation0>SameAsProject</AutoSaveLocation0>\n");
-        file.append("\t\t<CCLibrariesLocation0>SameAsProject</CCLibrariesLocation0>\n");
-        file.append("\t\t<DVDEncodingLocation0>SameAsProject</DVDEncodingLocation0>\n");
-        file.append("\t\t<TransferMediaLocation0>SameAsProject</TransferMediaLocation0>\n");
+        file.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
+        file.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
+        file.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
+        file.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
+        file.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
+        file.append("\t\t<CCLibrariesLocation0>" + same_as_project + "</CCLibrariesLocation0>\n");
+        file.append("<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
+        file.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
+        file.append("\t\t<TransferMediaLocation0>" + same_as_project + "</TransferMediaLocation0>\n");
         file.append("\t</ScratchDiskSettings>\n");
+
         file.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
         file.append("\t\t<Enabled>false</Enabled>\n");
         file.append("\t\t<Action>copy</Action>\n");
-        file.append("\t\t<PresetPath>\\\\?\\C:\\Program Files\\Adobe\\Adobe Premiere Pro CC 2017\\Settings\\IngestPresets\\Copy\\Copy With MD5 Verification.epr</PresetPath>\n");
+        file.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
         file.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
         file.append("\t\t<ProxyDestination>SameAsProject</ProxyDestination>\n");
-        file.append("\t\t<MachineID>df5f0e7d-f4c1-461a-9457-053a976c59b1</MachineID>\n");
+        file.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
         file.append("\t</IngestSettings>\n");
-        file.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
-        file.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
 
-        file.append("\t\t<WorkspaceDefinition>&lt;?xml version='1.0'?&gt;&#10;&lt;prop.map version='4'&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;DVA_Wrkspce&lt;/key&gt;&#10;&lt;string&gt;1.2&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;MonitorInfo&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Monitor-0&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;int type='signed' size='32'/&gt;&lt;/array.type&gt;&#10;&lt;int type='signed' size='32'&gt;0&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;0&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1920&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1040&lt;/int&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;NumMonitors&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;1&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;SerCfgMax&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;1&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TopLevelFrame-0&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HasLeftBar&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HasRightBar&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HasStatBar&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HasToolBar&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.81510419&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.64135021&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.61302084&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50637215&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Project&lt;/string&gt;&#10;&lt;string&gt;History&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;CurrentBin.ID&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;64&amp;apos;&amp;gt;1000000&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;ProjectColumnInfo.ID&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;&amp;amp;lt;?xml version=&amp;amp;quot;1.0&amp;amp;quot; encoding=&amp;amp;quot;UTF-8&amp;amp;quot;?&amp;amp;gt;&#10;&amp;amp;lt;PremiereData Version=&amp;amp;quot;3&amp;amp;quot;&amp;amp;gt;&#10;	&amp;amp;lt;ProjectViewState ObjectRef=&amp;amp;quot;1&amp;amp;quot;/&amp;amp;gt;&#10;	&amp;amp;lt;ProjectViewState ObjectID=&amp;amp;quot;1&amp;amp;quot; ClassID=&amp;amp;quot;18fb911d-4f21-4b7b-b196-b250dad79838&amp;amp;quot; Version=&amp;amp;quot;2&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;IconSort.ColumnIndex&amp;amp;gt;0&amp;amp;lt;/IconSort.ColumnIndex&amp;amp;gt;&#10;		&amp;amp;lt;IconSort.Direction&amp;amp;gt;0&amp;amp;lt;/IconSort.Direction&amp;amp;gt;&#10;		&amp;amp;lt;IconSort.Type&amp;amp;gt;0&amp;amp;lt;/IconSort.Type&amp;amp;gt;&#10;		&amp;amp;lt;ListView.NameColumnWidth&amp;amp;gt;0&amp;amp;lt;/ListView.NameColumnWidth&amp;amp;gt;&#10;		&amp;amp;lt;Sort.Direction&amp;amp;gt;0&amp;amp;lt;/Sort.Direction&amp;amp;gt;&#10;		&amp;amp;lt;Sort.ColumnIndex&amp;amp;gt;2&amp;amp;lt;/Sort.ColumnIndex&amp;amp;gt;&#10;		&amp;amp;lt;Sort.Enabled&amp;amp;gt;true&amp;amp;lt;/Sort.Enabled&amp;amp;gt;&#10;		&amp;amp;lt;Sort.Type&amp;amp;gt;0&amp;amp;lt;/Sort.Type&amp;amp;gt;&#10;		&amp;amp;lt;Thumbnail.ShowsEffects.State&amp;amp;gt;true&amp;amp;lt;/Thumbnail.ShowsEffects.State&amp;amp;gt;&#10;		&amp;amp;lt;ListView.Thumbnail.State&amp;amp;gt;false&amp;amp;lt;/ListView.Thumbnail.State&amp;amp;gt;&#10;		&amp;amp;lt;IconView.Thumbnail.State&amp;amp;gt;true&amp;amp;lt;/IconView.Thumbnail.State&amp;amp;gt;&#10;		&amp;amp;lt;ListView.Thumbnail.Size&amp;amp;gt;0&amp;amp;lt;/ListView.Thumbnail.Size&amp;amp;gt;&#10;		&amp;amp;lt;IconView.Thumbnail.Size&amp;amp;gt;200&amp;amp;lt;/IconView.Thumbnail.Size&amp;amp;gt;&#10;		&amp;amp;lt;ContentView.LastViewed&amp;amp;gt;1&amp;amp;lt;/ContentView.LastViewed&amp;amp;gt;&#10;		&amp;amp;lt;PreviewView.Visible&amp;amp;gt;true&amp;amp;lt;/PreviewView.Visible&amp;amp;gt;&#10;		&amp;amp;lt;ProjectViewState.ViewHidden&amp;amp;gt;false&amp;amp;lt;/ProjectViewState.ViewHidden&amp;amp;gt;&#10;		&amp;amp;lt;ProjectViewState.BinID&amp;amp;gt;-1&amp;amp;lt;/ProjectViewState.BinID&amp;amp;gt;&#10;		&amp;amp;lt;ProjectViewState.OriginalID&amp;amp;gt;361ff028-e258-4162-a70b-ddea24afb013&amp;amp;lt;/ProjectViewState.OriginalID&amp;amp;gt;&#10;		&amp;amp;lt;ProjectViewState.ID&amp;amp;gt;3625b009-0f43-4db8-8f24-6be33ebbaa5f&amp;amp;lt;/ProjectViewState.ID&amp;amp;gt;&#10;		&amp;amp;lt;ColumnListContents.Version&amp;amp;gt;11&amp;amp;lt;/ColumnListContents.Version&amp;amp;gt;&#10;		&amp;amp;lt;Columns.List ObjectRef=&amp;amp;quot;2&amp;amp;quot;/&amp;amp;gt;&#10;	&amp;amp;lt;/ProjectViewState&amp;amp;gt;&#10;	&amp;amp;lt;ColumnList ObjectID=&amp;amp;quot;2&amp;amp;quot; ClassID=&amp;amp;quot;a1c709cd-35df-4821-8200-03565d374155&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Columns Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;0&amp;amp;quot; ObjectRef=&amp;amp;quot;3&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;1&amp;amp;quot; ObjectRef=&amp;amp;quot;4&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;2&amp;amp;quot; ObjectRef=&amp;amp;quot;5&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;3&amp;amp;quot; ObjectRef=&amp;amp;quot;6&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;4&amp;amp;quot; ObjectRef=&amp;amp;quot;7&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;5&amp;amp;quot; ObjectRef=&amp;amp;quot;8&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;6&amp;amp;quot; ObjectRef=&amp;amp;quot;9&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;7&amp;amp;quot; ObjectRef=&amp;amp;quot;10&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;8&amp;amp;quot; ObjectRef=&amp;amp;quot;11&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;9&amp;amp;quot; ObjectRef=&amp;amp;quot;12&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;10&amp;amp;quot; ObjectRef=&amp;amp;quot;13&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;11&amp;amp;quot; ObjectRef=&amp;amp;quot;14&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;12&amp;amp;quot; ObjectRef=&amp;amp;quot;15&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;13&amp;amp;quot; ObjectRef=&amp;amp;quot;16&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;14&amp;amp;quot; ObjectRef=&amp;amp;quot;17&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;15&amp;amp;quot; ObjectRef=&amp;amp;quot;18&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;16&amp;amp;quot; ObjectRef=&amp;amp;quot;19&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;17&amp;amp;quot; ObjectRef=&amp;amp;quot;20&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;18&amp;amp;quot; ObjectRef=&amp;amp;quot;21&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;19&amp;amp;quot; ObjectRef=&amp;amp;quot;22&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;20&amp;amp;quot; ObjectRef=&amp;amp;quot;23&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;21&amp;amp;quot; ObjectRef=&amp;amp;quot;24&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;22&amp;amp;quot; ObjectRef=&amp;amp;quot;25&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;23&amp;amp;quot; ObjectRef=&amp;amp;quot;26&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;24&amp;amp;quot; ObjectRef=&amp;amp;quot;27&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;25&amp;amp;quot; ObjectRef=&amp;amp;quot;28&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;26&amp;amp;quot; ObjectRef=&amp;amp;quot;29&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;27&amp;amp;quot; ObjectRef=&amp;amp;quot;30&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;28&amp;amp;quot; ObjectRef=&amp;amp;quot;31&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;29&amp;amp;quot; ObjectRef=&amp;amp;quot;32&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;30&amp;amp;quot; ObjectRef=&amp;amp;quot;33&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;31&amp;amp;quot; ObjectRef=&amp;amp;quot;34&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;32&amp;amp;quot; ObjectRef=&amp;amp;quot;35&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;33&amp;amp;quot; ObjectRef=&amp;amp;quot;36&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;34&amp;amp;quot; ObjectRef=&amp;amp;quot;37&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;35&amp;amp;quot; ObjectRef=&amp;amp;quot;38&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;36&amp;amp;quot; ObjectRef=&amp;amp;quot;39&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;37&amp;amp;quot; ObjectRef=&amp;amp;quot;40&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;38&amp;amp;quot; ObjectRef=&amp;amp;quot;41&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;39&amp;amp;quot; ObjectRef=&amp;amp;quot;42&amp;amp;quot;/&amp;amp;gt;&#10;			&amp;amp;lt;Column Index=&amp;amp;quot;40&amp;amp;quot; ObjectRef=&amp;amp;quot;43&amp;amp;quot;/&amp;amp;gt;&#10;		&amp;amp;lt;/Columns&amp;amp;gt;&#10;	&amp;amp;lt;/ColumnList&amp;amp;gt;&#10;	&amp;amp;lt;LabelColumn ObjectID=&amp;amp;quot;3&amp;amp;quot; ClassID=&amp;amp;quot;0b8cc011-65dd-4b47-aad9-751ca2891f4a&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;26&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;1&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Label&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Libellé&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/LabelColumn&amp;amp;gt;&#10;	&amp;amp;lt;NameColumn ObjectID=&amp;amp;quot;4&amp;amp;quot; ClassID=&amp;amp;quot;0547b302-c849-46b3-ae2a-b245e9dd59eb&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;481&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.Name&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Nom&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/NameColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;5&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;23&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.MediaType&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Type de média&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;6&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;22&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.MediaTimebase&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Fréquence d&amp;amp;apos;images&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;7&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;21&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.MediaStart&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Début du média&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;8&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;20&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.MediaEnd&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Fin du média&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;9&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;");
-        file.append("/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;19&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.MediaDuration&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Durée du média&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;10&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;35&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.VideoInPoint&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Point d&amp;amp;apos;entrée vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;11&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;36&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.VideoOutPoint&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Point de sortie vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;12&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;33&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.VideoDuration&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Durée vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;13&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;3&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.AudioInPoint&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Point d&amp;amp;apos;entrée audio&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;14&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;4&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.AudioOutPoint&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Point de sortie audio&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;15&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;1&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.AudioDuration&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Durée audio&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;16&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;34&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.VideoInfo&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Infos vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;17&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;296&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;2&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.AudioInfo&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Infos audio&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;18&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;38&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.VideoUsage&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Utilisation vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;19&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;6&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.AudioUsage&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Utilisation audio&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;20&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;30&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.TapeName&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Nom de la bande&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;21&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;15&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Description&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Description&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;22&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;1&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;10&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Comment&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Commentaire&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;23&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;18&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.LogNote&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Remarque&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;24&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;492&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;16&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.FilePath&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Chemin d&amp;amp;apos;accès du média&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;CaptureSettingsColumn ObjectID=&amp;amp;quot;25&amp;amp;quot; ClassID=&amp;amp;quot;97dc9c98-3a27-4320-91c3-cc222addeef7&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;2&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.CaptureSettings&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Réglages d&amp;amp;apos;acquisition&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/CaptureSettingsColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;26&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;29&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Status&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Etat&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;27&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;25&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.OfflineProperties&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Propriétés off-line&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;28&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;27&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Scene&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Scène&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;29&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;1&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;9&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Client&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Client&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;BoolPropertyColumn ObjectID=&amp;amp;quot;30&amp;amp;quot; ClassID=&amp;amp;quot;1d4dd772-4985-4f43-874a-84b2b566e724&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;2&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyBool.Good&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Bon(ne)&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;		&amp;amp;lt;Column.Editable.Key&amp;amp;gt;true&amp;amp;lt;/Column.Editable.Key&amp;amp;gt;&#10;		&amp;amp;lt;Column.Property.Key&amp;amp;gt;Column.PropertyBool.Good&amp;amp;lt;/Column.Property.Key&amp;amp;gt;&#10;	&amp;amp;lt;/BoolPropertyColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;31&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;60&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;28&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Shot&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Plan&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;quot;32&amp;amp;quot; ClassID=&amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;42&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.Intrinsic.SoundTimeCode&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Code temporel sonore&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/TimecodeColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;33&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;");
-        file.append("&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;43&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.SoundRoll&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Déroul. sonore&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;34&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;44&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.SyncOffset&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Décalage de synchronisation&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;35&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;45&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Codec&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Codec vidéo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;36&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;false&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;46&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.FieldOrder&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Ordre des trames&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;BoolPropertyColumn ObjectID=&amp;amp;quot;37&amp;amp;quot; ClassID=&amp;amp;quot;1d4dd772-4985-4f43-874a-84b2b566e724&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;2&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyBool.Hide&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Masquer&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;		&amp;amp;lt;Column.Editable.Key&amp;amp;gt;true&amp;amp;lt;/Column.Editable.Key&amp;amp;gt;&#10;		&amp;amp;lt;Column.Property.Key&amp;amp;gt;Column.PropertyBool.Hide&amp;amp;lt;/Column.Property.Key&amp;amp;gt;&#10;	&amp;amp;lt;/BoolPropertyColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;38&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;47&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.FilmCameraRoll&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Pellicule&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;39&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;48&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.FilmDailyRoll&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Pellicule quotidienne&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;40&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;49&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.FilmLabRoll&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Pellicule labo&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;EditTextColumn ObjectID=&amp;amp;quot;41&amp;amp;quot; ClassID=&amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;50&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.FilmKeycode&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Code d’identification&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/EditTextColumn&amp;amp;gt;&#10;	&amp;amp;lt;StringColumn ObjectID=&amp;amp;quot;42&amp;amp;quot; ClassID=&amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;100&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;0&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;51&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.Proxy&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Doublure&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;	&amp;amp;lt;/StringColumn&amp;amp;gt;&#10;	&amp;amp;lt;SelectedItemsColumn ObjectID=&amp;amp;quot;43&amp;amp;quot; ClassID=&amp;amp;quot;88bcfb15-97a7-49ed-ac05-7d3ce637d2a0&amp;amp;quot; Version=&amp;amp;quot;1&amp;amp;quot;&amp;amp;gt;&#10;		&amp;amp;lt;Column.IsHidden&amp;amp;gt;true&amp;amp;lt;/Column.IsHidden&amp;amp;gt;&#10;		&amp;amp;lt;Column.Width&amp;amp;gt;26&amp;amp;lt;/Column.Width&amp;amp;gt;&#10;		&amp;amp;lt;Column.Class&amp;amp;gt;1&amp;amp;lt;/Column.Class&amp;amp;gt;&#10;		&amp;amp;lt;Column.Type&amp;amp;gt;0&amp;amp;lt;/Column.Type&amp;amp;gt;&#10;		&amp;amp;lt;Column.ID&amp;amp;gt;Column.PropertyText.SelectedItems&amp;amp;lt;/Column.ID&amp;amp;gt;&#10;		&amp;amp;lt;Column.Name&amp;amp;gt;Sélectionné(s)&amp;amp;lt;/Column.Name&amp;amp;gt;&#10;");
-        file.append("	&amp;amp;lt;/SelectedItemsColumn&amp;amp;gt;&#10;&amp;amp;lt;/PremiereData&amp;amp;gt;&#10;&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;ProjectView.ID&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;3625b009-0f43-4db8-8f24-6be33ebbaa5f&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.OpenedSchema.0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.OpenedSchemaCount&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;unsigned&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.Section.0.Opened&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.Section.1.Opened&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.Section.2.Opened&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.SharedLabelWidth&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;165&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;MDE.includedPaths&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;?xml version=&amp;amp;apos;1.0&amp;amp;apos;?&amp;amp;gt;&#10;&amp;amp;lt;md.paths version=&amp;amp;apos;1.0&amp;amp;apos;&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;codingHistory&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;codingHistory&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;description&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;description&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;originationDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;originationDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;originationTime&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;originationTime&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;originator&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;originator&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;originatorReference&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;originatorReference&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;timeReference&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeReference&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;");
-        file.append("parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;umid&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;umid&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;version&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;version&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/bwf/bext/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ApertureValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ApertureValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;BrightnessValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;BrightnessValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CFAPattern/exif:Columns&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Columns&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;cfapattern&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CFAPattern/exif:Rows&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Rows&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;cfapattern&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ColorSpace&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ColorSpace&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CompressedBitsPerPixel&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;CompressedBitsPerPixel&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Contrast&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Contrast&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CustomRendered&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;CustomRendered&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DateTimeDigitized&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;DateTimeDigitized&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DateTimeOriginal&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;DateTimeOriginal&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;");
-        file.append("http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DeviceSettingDescription/exif:Columns&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Columns&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;devicesettings&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DeviceSettingDescription/exif:Rows&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Rows&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;devicesettings&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DigitalZoomRatio&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;DigitalZoomRatio&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExifVersion&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExifVersion&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExposureBiasValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExposureBiasValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExposureIndex&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExposureIndex&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExposureMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExposureMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExposureProgram&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExposureProgram&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ExposureTime&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ExposureTime&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FNumber&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FNumber&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FileSource&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FileSource&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Flash/exif:Fired&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Fired&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;flash&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Flash/exif:Function&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Function&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;flash&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Flash/exif:Mode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Mode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;flash&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Flash/exif:RedEyeMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;RedEyeMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;flash&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Flash/exif:Return&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Return&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;flash&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FlashEnergy&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FlashEnergy&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FlashpixVersion&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FlashpixVersion&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FocalLength&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FocalLength&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FocalLengthIn35mmFilm&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FocalLengthIn35mmFilm&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FocalPlaneResolutionUnit&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FocalPlaneResolutionUnit&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FocalPlaneXResolution&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FocalPlaneXResolution&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;FocalPlaneYResolution&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;FocalPlaneYResolution&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSAltitude&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSAltitude&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSAltitudeRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSAltitudeRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSAreaInformation&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSAreaInformation&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDOP&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDOP&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDestBearing&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestBearing&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDestBearingRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestBearingRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDestDistance&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestDistance&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDestDistanceRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestDistanceRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;");
-        file.append("lt;description&amp;amp;gt;GPSDestLatitude&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestLatitude&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDestLongitude&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDestLongitude&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSDifferential&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSDifferential&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSImgDirection&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSImgDirection&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSImgDirectionRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSImgDirectionRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSLatitude&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSLatitude&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSLongitude&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSLongitude&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSMapDatum&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSMapDatum&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSMeasureMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSMeasureMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSProcessingMethod&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSProcessingMethod&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSSatellites&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSSatellites&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSSpeed&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSSpeed&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSSpeedRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSSpeedRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSStatus&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSStatus&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSTimeStamp&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSTimeStamp&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSTrack&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSTrack&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSTrackRef&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSTrackRef&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GPSVersionID&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GPSVersionID&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;GainControl&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;GainControl&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ImageUniqueID&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ImageUniqueID&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;LightSource&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;LightSource&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;MaxApertureValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;MaxApertureValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;MeteringMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;MeteringMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;OECF/exif:Columns&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Columns&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;oecf/sfr&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;OECF/exif:Rows&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Rows&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;oecf/sfr&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;PixelXDimension&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;PixelXDimension&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;PixelYDimension&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;PixelYDimension&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;RelatedSoundFile&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;RelatedSoundFile&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Saturation&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Saturation&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SceneCaptureType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SceneCaptureType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SceneType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SceneType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SensingMethod&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SensingMethod&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Sharpness&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Sharpness&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ShutterSpeedValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ShutterSpeedValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SpatialFrequencyResponse/exif:Columns&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Columns&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;oecf/sfr&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SpatialFrequencyResponse/exif:Rows&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Rows&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;oecf/sfr&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SpectralSensitivity&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SpectralSensitivity&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SubjectDistance&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SubjectDistance&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;");
-        file.append("description&amp;amp;gt;SubjectDistanceRange&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SubjectDistanceRange&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;UserComment&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;UserComment&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;WhiteBalance&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;WhiteBalance&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/exif/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/ixml/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;trackList/iXML:channelIndex&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;channelIndex&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;track&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/ixml/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;trackList/iXML:name&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;name&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;track&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;AuthorsPosition&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;AuthorsPosition&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CaptionWriter&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;CaptionWriter&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Category&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Category&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;City&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;City&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Country&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Country&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Credit&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Credit&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;DateCreated&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;DateCreated&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;");
-        file.append("amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Headline&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Headline&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Instructions&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Instructions&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Source&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Source&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;State&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;State&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;SupplementalCategories&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;SupplementalCategories&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;TransmissionReference&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;TransmissionReference&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Urgency&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Urgency&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/photoshop/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;file_created&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;file_created&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;file_modified&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;file_modified&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;file_path&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;file_path&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;file_size&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;file_size&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;filename&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;filename&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;metadata_modified&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;metadata_modified&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;type&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;type&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateFileProperties/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.AudioDuration&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.AudioDuration&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.AudioInPoint&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.AudioInPoint&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.AudioInfo&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.AudioInfo&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.AudioOutPoint&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.AudioOutPoint&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.AudioUsage&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.AudioUsage&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.FilePath&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.FilePath&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.LogNote&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.LogNote&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.MediaDuration&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.MediaDuration&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.MediaEnd&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.MediaEnd&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.MediaStart&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.MediaStart&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.MediaTimebase&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.MediaTimebase&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.MediaType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.MediaType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.Name&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.Name&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.TapeName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.TapeName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.VideoDuration&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.VideoDuration&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.VideoInPoint&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.VideoInPoint&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.VideoInfo&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.VideoInfo&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.VideoOutPoint&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.VideoOutPoint&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.Intrinsic.VideoUsage&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.Intrinsic.VideoUsage&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyBool.Good&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyBool.Good&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;");
-        file.append("lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.CaptureSettings&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.CaptureSettings&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Client&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Client&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Comment&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Comment&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Description&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Description&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Label&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Label&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.OfflineProperties&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.OfflineProperties&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Scene&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Scene&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Shot&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Shot&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Column.PropertyText.Status&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Column.PropertyText.Status&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/premierePrivateProjectMetaData/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Advisory&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Advisory&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;BaseURL&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;BaseURL&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CreateDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;CreateDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;CreatorTool&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;CreatorTool&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Identifier&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Identifier&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Label&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Label&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;MetadataDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;MetadataDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;ModifyDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;ModifyDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Nickname&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Nickname&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Rating&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Rating&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Certificate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Certificate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Marked&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Marked&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;Owner&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;Owner&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;UsageTerms&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;UsageTerms&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;WebStatement&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;WebStatement&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xap/1.0/rights/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;absPeakAudioFilePath&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;absPeakAudioFilePath&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;album&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;album&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;altTapeName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;altTapeName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;altTimecode/xmpDM:timeFormat&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeFormat&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timecode&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;altTimecode/xmpDM:timeValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timecode&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;artist&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;artist&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;audioChannelType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;audioChannelType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;audioCompressor&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;audioCompressor&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;audioModDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;audioModDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;");
-        file.append("namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;audioSampleRate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;audioSampleRate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;audioSampleType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;audioSampleType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;beatSpliceParams/xmpDM:riseInDecibel&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;riseInDecibel&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;beatsplicestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;beatSpliceParams/xmpDM:riseInTimeDuration/xmpDM:scale&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scale&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;beatSpliceParams/xmpDM:riseInTimeDuration/xmpDM:value&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;value&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;beatSpliceParams/xmpDM:useFileBeatsMarker&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;useFileBeatsMarker&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;beatsplicestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;cameraModel&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;cameraModel&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;cameraMove&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;cameraMove&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;client&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;client&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;comment&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;comment&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;composer&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;composer&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;director&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;director&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;");
-        file.append("http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;directorPhotography&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;directorPhotography&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;duration/xmpDM:scale&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scale&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;duration/xmpDM:value&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;value&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;engineer&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;engineer&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;fileDataRate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;fileDataRate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;genre&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;genre&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;good&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;good&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;instrument&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;instrument&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;introTime/xmpDM:scale&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scale&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;introTime/xmpDM:value&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;value&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;key&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;key&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;logComment&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;logComment&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;loop&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;loop&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;metadataModDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;metadataModDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;numberOfBeats&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;numberOfBeats&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;outCue/xmpDM:scale&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scale&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;outCue/xmpDM:value&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;value&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;projectName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;projectName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;projectRef/xmpDM:path&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;path&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;projectlink&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;projectRef/xmpDM:type&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;type&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;projectlink&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;pullDown&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;pullDown&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;relativePeakAudioFilePath&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;relativePeakAudioFilePath&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;relativeTimestamp/xmpDM:scale&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scale&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;relativeTimestamp/xmpDM:value&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;value&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;time&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;releaseDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;releaseDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;resampleParams/xmpDM:quality&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;quality&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;resamplestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;scaleType&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scaleType&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;scene&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;scene&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;shotDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;shotDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;shotDay&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;shotDay&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;shotLocation&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;shotLocation&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;");
-        file.append("http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;shotName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;shotName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;speakerPlacement&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;speakerPlacement&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;startTimecode/xmpDM:timeFormat&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeFormat&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timecode&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;startTimecode/xmpDM:timeValue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeValue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timecode&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;stretchMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;stretchMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;takeNumber&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;takeNumber&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;tapeName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;tapeName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;tempo&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;tempo&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;timeScaleParams/xmpDM:frameOverlappingPercentage&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;frameOverlappingPercentage&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timescalestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;timeScaleParams/xmpDM:frameSize&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;frameSize&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timescalestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;timeScaleParams/xmpDM:quality&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;quality&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;timescalestretch&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;timeSignature&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;timeSignature&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;trackNumber&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;trackNumber&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaMode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoAlphaMode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:A&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;A&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:B&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;B&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:L&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;L&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:black&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;black&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:blue&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;blue&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:cyan&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;cyan&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:green&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;green&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:magenta&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;magenta&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:mode&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;mode&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:red&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;red&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:swatchName&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;swatchName&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:type&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;type&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaPremultipleColor/xmpG:yellow&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;yellow&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;colorant&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoAlphaUnityIsTransparent&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoAlphaUnityIsTransparent&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoColorSpace&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoColorSpace&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoCompressor&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoCompressor&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoFieldOrder&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoFieldOrder&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoFrameRate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoFrameRate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoFrameSize/stDim:h&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;h&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;dimensions&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoFrameSize/stDim:unit&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;unit&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;dimensions&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoFrameSize/stDim:w&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;w&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;dimensions&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoModDate&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoModDate&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoPixelAspectRatio&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoPixelAspectRatio&amp;amp;lt;");
-        file.append("/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;videoPixelDepth&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;videoPixelDepth&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://ns.adobe.com/xmp/1.0/DynamicMedia/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;contributor&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;contributor&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;");
-        file.append("parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;coverage&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;coverage&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;creator&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;creator&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;description&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;description&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;true&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;format&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;format&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;identifier&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;identifier&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;publisher&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;publisher&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;relation&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;relation&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;rights&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;rights&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;source&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;source&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;subject&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;subject&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;metadata_path&amp;amp;gt;&amp;amp;lt;internal&amp;amp;gt;false&amp;amp;lt;/internal&amp;amp;gt;&#10;&amp;amp;lt;namespace&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/namespace&amp;amp;gt;&#10;&amp;amp;lt;description&amp;amp;gt;title&amp;amp;lt;/description&amp;amp;gt;&#10;&amp;amp;lt;entry_name&amp;amp;gt;title&amp;amp;lt;/entry_name&amp;amp;gt;&#10;&amp;amp;lt;parent_id&amp;amp;gt;http://purl.org/dc/elements/1.1/&amp;amp;lt;/parent_id&amp;amp;gt;&#10;&amp;amp;lt;/metadata_path&amp;amp;gt;&#10;&amp;amp;lt;/md.paths&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-2&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;ReanimTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;MetadataEditor&lt;/string&gt;&#10;&lt;string&gt;Scopes&lt;/string&gt;&#10;&lt;string&gt;AudioClipMixer&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Source Monitor&lt;/string&gt;&#10;&lt;string&gt;Effect Controls&lt;/string&gt;&#10;&lt;string&gt;AudioMixer&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HandlerEffectControls.AreKeyframesVisible&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HandlerEffectControls.SeparatorRatio&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.50677508&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HandlerEffectControls.SeparatorRatioWhenMaximized&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.25313154&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-2&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Program Monitor&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.88020831&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.1964497&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-2&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-3&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;ReanimTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Media Browser&lt;/string&gt;&#10;&lt;string&gt;MarkerList&lt;/string&gt;&#10;&lt;string&gt;CsxsTabcom.adobe.DesignLibraries.angular&lt;/string&gt;&#10;&lt;string&gt;Captions&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Effects&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.91884983&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;");
-        file.append("prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50125313&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50100201&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50160772&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50129199&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.50183153&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;");
-        file.append("prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.5&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;");
-        file.append("/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;");
-        file.append("/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;3&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-1&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;2&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-10&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-11&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-12&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-13&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-14&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-15&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-16&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-2&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;1&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-3&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;0&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-4&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;5&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-5&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;6&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-6&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;5&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-7&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;4&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-8&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;3&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-9&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TL.view.proplist.key&amp;lt;/key&amp;gt;&#10;&amp;lt;ustring&amp;gt;2&amp;lt;/ustring&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;string&gt;Timeline&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Splitter&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Orient&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Place&lt;/key&gt;&#10;&lt;float&gt;0.53478259&lt;/float&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;MiniAudioMixer&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Frame&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;CurrTab&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;0&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StackedViewFlags&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;4&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Tools&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;VisTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameViewFlags&amp;lt;/key&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;4&amp;lt;/int&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameProxy&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HidTabState-0&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;TabIDs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Color&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub1Vis&lt;/key&gt;&#10;&lt;true/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;Sub2Vis&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;StatBarTabType&lt;/key&gt;&#10;&lt;string&gt;Status Bar&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;SzPos&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;int type='signed' size='32'/&gt;&lt;/array.type&gt;&#10;&lt;int type='signed' size='32'&gt;-8&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;-8&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1936&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1056&lt;/int&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;ToolBarMinimized&lt;/key&gt;&#10;&lt;false/&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;ToolBarTabType&lt;/key&gt;&#10;&lt;string&gt;TabType_DVAToolbar&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinState&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;MaxPos&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;int type='signed' size='32'/&gt;&lt;/array.type&gt;&#10;&lt;int type='signed' size='32'&gt;-1&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;-1&lt;/int&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;MinPos&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;int type='signed' size='32'/&gt;&lt;/array.type&gt;&#10;&lt;int type='signed' size='32'&gt;-1&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;-1&lt;/int&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;NormalPos&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;int type='signed' size='32'/&gt;&lt;/array.type&gt;&#10;&lt;int type='signed' size='32'&gt;323&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;45&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1603&lt;/int&gt;&#10;&lt;int type='signed' size='32'&gt;1069&lt;/int&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;ShowCmd&lt;/key&gt;&#10;&lt;int type='signed' size='32'&gt;3&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WSInstanceData&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-0&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;VSTEditor&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&#10;                &amp;lt;prop.list&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;                &amp;lt;prop.list&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;                &amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;                &amp;lt;prop.list&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;                &amp;lt;prop.list&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;                &amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;                &amp;amp;lt;/prop.list&amp;amp;gt;&#10;                &amp;lt;/string&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;                &amp;lt;array&amp;gt;&#10;                &amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;                &amp;lt;string&amp;gt;VSTEditor&amp;lt;/string&amp;gt;&#10;                &amp;lt;/array&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;/prop.list&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;/prop.list&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;");
-        file.append("                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;                &amp;lt;false/&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;/prop.list&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;prop.pair&amp;gt;&#10;                &amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;                &amp;lt;array&amp;gt;&#10;                &amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;                &amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;36&amp;lt;/int&amp;gt;&#10;                &amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;78&amp;lt;/int&amp;gt;&#10;                &amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;640&amp;lt;/int&amp;gt;&#10;                &amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;480&amp;lt;/int&amp;gt;&#10;                &amp;lt;/array&amp;gt;&#10;                &amp;lt;/prop.pair&amp;gt;&#10;                &amp;lt;/prop.list&amp;gt;&#10;              &lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-1&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;TrimWindow&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TrimWindow&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;45&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;88&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1005&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;478&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-10&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;CsxsTabnet.sytes.chuwa.jsxlauncher.extension&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;4&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;CsxsTabnet.sytes.chuwa.jsxlauncher.extension&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;673&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;221&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;200&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;378&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-11&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Events&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Events&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;100&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;100&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1375&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;521&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-12&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Capture&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Capture&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;282&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;81&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;888&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;706&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-13&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;CsxsTabJeanjeanPro.panel&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;4&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;CsxsTabJeanjeanPro.panel&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;");
-        file.append("int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;665&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;271&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;370&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;570&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-14&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Project&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;CurrentBin.ID&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;64&amp;amp;apos;&amp;amp;gt;1000001&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;4&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;ProjectColumnInfo.ID&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;&amp;amp;amp;lt;?xml version=&amp;amp;amp;quot;1.0&amp;amp;amp;quot; encoding=&amp;amp;amp;quot;UTF-8&amp;amp;amp;quot;?&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;PremiereData Version=&amp;amp;amp;quot;3&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState ObjectRef=&amp;amp;amp;quot;1&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState ObjectID=&amp;amp;amp;quot;1&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;18fb911d-4f21-4b7b-b196-b250dad79838&amp;amp;amp;quot; Version=&amp;amp;amp;quot;2&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;IconSort.ColumnIndex&amp;amp;amp;gt;0&amp;amp;amp;lt;/IconSort.ColumnIndex&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;IconSort.Direction&amp;amp;amp;gt;0&amp;amp;amp;lt;/IconSort.Direction&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;IconSort.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/IconSort.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ListView.NameColumnWidth&amp;amp;amp;gt;0&amp;amp;amp;lt;/ListView.NameColumnWidth&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Sort.Direction&amp;amp;amp;gt;0&amp;amp;amp;lt;/Sort.Direction&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Sort.ColumnIndex&amp;amp;amp;gt;2&amp;amp;amp;lt;/Sort.ColumnIndex&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Sort.Enabled&amp;amp;amp;gt;true&amp;amp;amp;lt;/Sort.Enabled&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Sort.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Sort.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Thumbnail.ShowsEffects.State&amp;amp;amp;gt;true&amp;amp;amp;lt;/Thumbnail.ShowsEffects.State&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ListView.Thumbnail.State&amp;amp;amp;gt;false&amp;amp;amp;lt;/ListView.Thumbnail.State&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;IconView.Thumbnail.State&amp;amp;amp;gt;true&amp;amp;amp;lt;/IconView.Thumbnail.State&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ListView.Thumbnail.Size&amp;amp;amp;gt;0&amp;amp;amp;lt;/ListView.Thumbnail.Size&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;IconView.Thumbnail.Size&amp;amp;amp;gt;200&amp;amp;amp;lt;/IconView.Thumbnail.Size&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ContentView.LastViewed&amp;amp;amp;gt;1&amp;amp;amp;lt;/ContentView.LastViewed&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;PreviewView.Visible&amp;amp;amp;gt;true&amp;amp;amp;lt;/PreviewView.Visible&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState.ViewHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/ProjectViewState.ViewHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState.BinID&amp;amp;amp;gt;-1&amp;amp;amp;lt;/ProjectViewState.BinID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState.OriginalID&amp;amp;amp;gt;3250f19f-57b0-4c73-b8e5-d5d3e84a674d&amp;amp;amp;lt;/ProjectViewState.OriginalID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ProjectViewState.ID&amp;amp;amp;gt;40c389ad-59b0-4abe-948a-612ed4304324&amp;amp;amp;lt;");
-        file.append("/ProjectViewState.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ColumnListContents.Version&amp;amp;amp;gt;11&amp;amp;amp;lt;/ColumnListContents.Version&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Columns.List ObjectRef=&amp;amp;amp;quot;2&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/ProjectViewState&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;ColumnList ObjectID=&amp;amp;amp;quot;2&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;a1c709cd-35df-4821-8200-03565d374155&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Columns Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;0&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;3&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;1&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;4&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;2&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;5&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;3&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;6&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;4&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;7&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;5&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;8&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;6&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;9&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;7&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;10&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;8&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;11&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;9&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;12&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;10&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;13&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;11&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;14&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;12&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;15&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;13&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;16&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;14&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;17&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;15&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;18&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;16&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;19&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;17&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;20&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;18&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;21&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;19&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;22&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;20&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;23&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;21&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;24&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;22&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;25&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;23&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;26&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;24&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;27&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;25&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;28&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;26&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;29&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;27&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;30&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;28&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;31&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;29&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;32&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;30&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;33&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;31&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;34&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;32&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;35&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;33&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;36&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;34&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;37&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;35&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;38&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;36&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;39&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;37&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;40&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;38&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;41&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;39&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;42&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column Index=&amp;amp;amp;quot;40&amp;amp;amp;quot; ObjectRef=&amp;amp;amp;quot;43&amp;amp;amp;quot;/&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/Columns&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/ColumnList&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;LabelColumn ObjectID=&amp;amp;amp;quot;3&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;0b8cc011-65dd-4b47-aad9-751ca2891f4a&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;26&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;1&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Label&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Libellé&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/LabelColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;NameColumn ObjectID=&amp;amp;amp;quot;4&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;0547b302-c849-46b3-ae2a-b245e9dd59eb&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;481&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.Name&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Nom&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/NameColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;5&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;23&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.MediaType&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Type de média&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;6&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;22&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.MediaTimebase&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Fréquence d&amp;amp;amp;apos;images&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;7&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;21&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.MediaStart&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Début du média&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;8&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;20&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.MediaEnd&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Fin du média&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;9&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;19&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.MediaDuration&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Durée du média&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;10&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;35&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.VideoInPoint&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Point d&amp;amp;amp;apos;entrée vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;11&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;36&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.VideoOutPoint&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Point de sortie vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;12&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;33&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.VideoDuration&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Durée vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;13&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;3&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.AudioInPoint&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Point d&amp;amp;amp;apos;entrée audio&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;14&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;4&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.AudioOutPoint&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Point de sortie audio&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;15&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;1&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.AudioDuration&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Durée audio&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;16&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;34&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.VideoInfo&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Infos vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;17&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;296&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;2&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.AudioInfo&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Infos audio&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;18&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;");
-        file.append("amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;38&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.VideoUsage&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Utilisation vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;19&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;6&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.AudioUsage&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Utilisation audio&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;20&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;30&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.TapeName&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Nom de la bande&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;21&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;15&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Description&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Description&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;22&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;1&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;10&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Comment&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Commentaire&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;23&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;18&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.LogNote&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Remarque&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;24&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;183&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;16&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.FilePath&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Chemin d&amp;amp;amp;apos;accès du média&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;CaptureSettingsColumn ObjectID=&amp;amp;amp;quot;25&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;97dc9c98-3a27-4320-91c3-cc222addeef7&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;2&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.CaptureSettings&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Réglages d&amp;amp;amp;apos;acquisition&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/CaptureSettingsColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;26&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;29&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Status&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Etat&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;27&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;25&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.OfflineProperties&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Propriétés off-line&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;28&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;27&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Scene&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Scène&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;29&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;1&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;9&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Client&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Client&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;BoolPropertyColumn ObjectID=&amp;amp;amp;quot;30&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;1d4dd772-4985-4f43-874a-84b2b566e724&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;2&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyBool.Good&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Bon(ne)&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Editable.Key&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.Editable.Key&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Property.Key&amp;amp;amp;gt;Column.PropertyBool.Good&amp;amp;amp;lt;/Column.Property.Key&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/BoolPropertyColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;31&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;60&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;28&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Shot&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Plan&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;TimecodeColumn ObjectID=&amp;amp;amp;quot;32&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;9c9279d2-355c-487b-b644-0698b42e32f9&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;42&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.Intrinsic.SoundTimeCode&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Code temporel sonore&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/TimecodeColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;33&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;43&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.SoundRoll&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Déroul. sonore&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;34&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;44&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.SyncOffset&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Décalage de synchronisation&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;35&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;45&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Codec&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Codec vidéo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;36&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;false&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;46&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.FieldOrder&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Ordre des trames&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;BoolPropertyColumn ObjectID=&amp;amp;amp;quot;37&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;1d4dd772-4985-4f43-874a-84b2b566e724&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;2&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyBool.Hide&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Masquer&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Editable.Key&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.Editable.Key&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Property.Key&amp;amp;amp;gt;Column.PropertyBool.Hide&amp;amp;amp;lt;/Column.Property.Key&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/BoolPropertyColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;38&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;47&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.FilmCameraRoll&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Pellicule&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;39&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;48&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.FilmDailyRoll&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Pellicule quotidienne&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;40&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;49&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.FilmLabRoll&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Pellicule labo&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;EditTextColumn ObjectID=&amp;amp;amp;quot;41&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;e9f21f9a-b686-440c-83f4-da1685c160ad&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;50&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.FilmKeycode&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Code d’identification&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/EditTextColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;StringColumn ObjectID=&amp;amp;amp;quot;42&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;f0ef302d-babc-4f75-9975-923a8ca28d7e&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;100&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;51&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.Proxy&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Doublure&amp;amp;amp;lt;/Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/StringColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;SelectedItemsColumn ObjectID=&amp;amp;amp;quot;43&amp;amp;amp;quot; ClassID=&amp;amp;amp;quot;88bcfb15-97a7-49ed-ac05-7d3ce637d2a0&amp;amp;amp;quot; Version=&amp;amp;amp;quot;1&amp;amp;amp;quot;&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.IsHidden&amp;amp;amp;gt;true&amp;amp;amp;lt;/Column.IsHidden&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Width&amp;amp;amp;gt;26&amp;amp;amp;lt;/Column.Width&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Class&amp;amp;amp;gt;1&amp;amp;amp;lt;/Column.Class&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Type&amp;amp;amp;gt;0&amp;amp;amp;lt;/Column.Type&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.ID&amp;amp;amp;gt;Column.PropertyText.SelectedItems&amp;amp;amp;lt;/Column.ID&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;Column.Name&amp;amp;amp;gt;Sélectionné(s)&amp;amp;amp;lt;");
-        file.append("Column.Name&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/SelectedItemsColumn&amp;amp;amp;gt;&#10;&amp;amp;amp;lt;/PremiereData&amp;amp;amp;gt;&#10;&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;ProjectView.ID&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;40c389ad-59b0-4abe-948a-612ed4304324&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Project&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;258&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;154&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;640&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;480&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-2&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Multicam&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Multicam&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;23&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;71&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;861&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;522&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-3&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;StoryPanel&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;StoryPanel&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;38&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;87&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;816&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;689&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-4&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Timecode&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Timecode&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1185&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;30&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;733&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;198&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-5&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;ReferenceMonitor&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;ReferenceMonitor&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1022&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;262&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;640&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;480&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-6&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;EditToTape&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;EditToTape&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;32&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;70&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;884&amp;lt;/int&amp;gt;&#10;&amp;");
-        file.append("lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;593&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-7&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;TitlerTools&lt;/string&gt;&#10;&lt;string&gt;TitlerActions&lt;/string&gt;&#10;&lt;string&gt;TitlerEditor&lt;/string&gt;&#10;&lt;string&gt;TitlerStyles&lt;/string&gt;&#10;&lt;string&gt;TitlerProperties&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.05610561&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.50354612&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeHeight&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;411&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeWidth&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;80&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TitlerTools&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;");
-        file.append("lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeHeight&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;405&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeWidth&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;80&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TitlerActions&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;true/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.82727271&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.84515369&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeHeight&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;671&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeWidth&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;1177&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.openviews&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;array&amp;amp;gt;&#10;&amp;amp;lt;array.type&amp;amp;gt;&amp;amp;lt;ustring/&amp;amp;gt;&amp;amp;lt;/array.type&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;TitlerEditor&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;TitlerProperties&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;TitlerActions&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;TitlerTools&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;ustring&amp;amp;gt;TitlerStyles&amp;amp;lt;/ustring&amp;amp;gt;&#10;&amp;amp;lt;/array&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TitlerEditor&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeHeight&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;87&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeWidth&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;1177&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TitlerStyles&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeHeight&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;803&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;TD.SnapSizeWidth&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;242&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;TitlerProperties&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;46&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;80&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1531&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;885&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-8&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;Info&lt;/string&gt;&#10;&lt;string&gt;Properties&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-1&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;0&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;Info&amp;lt;/string&amp;gt;&#10;&amp;lt;string&amp;gt;Properties&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1015&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;167&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;640&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;480&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanim-9&lt;/key&gt;&#10;&lt;prop.list&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;HiddenTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;RemovedTabs&lt;/key&gt;&#10;&lt;array&gt;&#10;&lt;array.type&gt;&lt;string/&gt;&lt;/array.type&gt;&#10;&lt;string&gt;CsxsTabTimeTrackerCCBasic.extension1&lt;/string&gt;&#10;&lt;/array&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;WinSerData&lt;/key&gt;&#10;&lt;string&gt;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasLeftBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasRightBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasStatBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HasToolBar&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Splitter&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Orient&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Place&amp;lt;/key&amp;gt;&#10;&amp;lt;float&amp;gt;0.5&amp;lt;/float&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;FrameProxy&amp;lt;/key&amp;gt;&#10;&amp;lt;prop.list&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;HidTabState-0&amp;lt;/key&amp;gt;&#10;&amp;lt;string&amp;gt;&amp;amp;lt;prop.list&amp;amp;gt;&#10;&amp;amp;lt;prop.pair&amp;amp;gt;&#10;&amp;amp;lt;key&amp;amp;gt;FrameViewFlags&amp;amp;lt;/key&amp;amp;gt;&#10;&amp;amp;lt;int type=&amp;amp;apos;signed&amp;amp;apos; size=&amp;amp;apos;32&amp;amp;apos;&amp;amp;gt;4&amp;amp;lt;/int&amp;amp;gt;&#10;&amp;amp;lt;/prop.pair&amp;amp;gt;&#10;&amp;amp;lt;/prop.list&amp;amp;gt;&#10;&amp;lt;/string&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;TabIDs&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;string/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;string&amp;gt;CsxsTabTimeTrackerCCBasic.extension1&amp;lt;/string&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub1Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;Sub2Vis&amp;lt;/key&amp;gt;&#10;&amp;lt;false/&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;prop.pair&amp;gt;&#10;&amp;lt;key&amp;gt;SzPos&amp;lt;/key&amp;gt;&#10;&amp;lt;array&amp;gt;&#10;&amp;lt;array.type&amp;gt;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;/&amp;gt;&amp;lt;/array.type&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;1523&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;220&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;255&amp;lt;/int&amp;gt;&#10;&amp;lt;int type=&amp;apos;signed&amp;apos; size=&amp;apos;32&amp;apos;&amp;gt;410&amp;lt;/int&amp;gt;&#10;&amp;lt;/array&amp;gt;&#10;&amp;lt;/prop.pair&amp;gt;&#10;&amp;lt;/prop.list&amp;gt;&#10;&lt;/string&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;prop.pair&gt;&#10;&lt;key&gt;FrameReanimMax&lt;/key&gt;&#10;&lt;int type='unsigned' size='32'&gt;15&lt;/int&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.pair&gt;&#10;&lt;/prop.list&gt;&#10;&lt;/prop.map&gt;&#10;</WorkspaceDefinition>\n");
+        file.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
         file.append("\t</WorkspaceSettings>\n");
 
         // Ajoute les dossiers de niveau 0 = ceux à la racine du projet.
@@ -1203,10 +1503,12 @@ public class AdobePremiereProject {
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"13\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"14\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"28\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1232,12 +1534,14 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
         file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
+
         file.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
         file.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
         file.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
@@ -1252,6 +1556,7 @@ public class AdobePremiereProject {
         file.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
         file.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
         file.append("\t</CaptureSettings>\n");
+
         file.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
         file.append("\t\t<TotalVideoTracks>1</TotalVideoTracks>\n");
         file.append("\t\t<DefaultAudioStandardMonoTracks>0</DefaultAudioStandardMonoTracks>\n");
@@ -1261,6 +1566,7 @@ public class AdobePremiereProject {
         file.append("\t\t<DefaultAudioSubmixStereoTracks>0</DefaultAudioSubmixStereoTracks>\n");
         file.append("\t\t<DefaultAudioSubmix51Tracks>0</DefaultAudioSubmix51Tracks>\n");
         file.append("\t</DefaultSequenceSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"18\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"30\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1286,12 +1592,14 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
         file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"32\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1317,12 +1625,14 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
         file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"34\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1348,12 +1658,14 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
         file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"36\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1379,12 +1691,14 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
         file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
+
         file.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"38\"/>\n");
         file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
@@ -1410,6 +1724,7 @@ public class AdobePremiereProject {
         file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
         file.append("\t\t<RenderDepth>0</RenderDepth>\n");
         file.append("\t</VideoCompileSettings>\n");
+
         file.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
@@ -1418,7 +1733,7 @@ public class AdobePremiereProject {
         file.append("\t</AudioCompileSettings>\n");
 
         // Ajout les dossier de niveau 1 (sous-dossier).
-        binProject(file, 1);
+        this.binProject(file, 1);
 
         String classID = "fb11c33a-b0a9-4465-aa94-b6d5db2628cf";
 
@@ -1464,63 +1779,74 @@ public class AdobePremiereProject {
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"29\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoSettings ObjectID=\"30\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
         file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
         file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"31\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoSettings ObjectID=\"32\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
         file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
         file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"33\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoSettings ObjectID=\"34\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
         file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
         file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"35\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoSettings ObjectID=\"36\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
         file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
         file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"37\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
+
         file.append("\t<VideoSettings ObjectID=\"38\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
         file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
         file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
         file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
         file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
         file.append("\t</VideoSettings>\n");
+
         file.append("\t<AudioSettings ObjectID=\"39\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
         file.append("\t\t<FrameRate>5292000</FrameRate>\n");
         file.append("\t\t<ChannelType>1</ChannelType>\n");
         file.append("\t</AudioSettings>\n");
 
         // Ajout les éléments de niveau 2.
-        binProject(file, 2);
+        this.binProject(file, 2);
 
         // Clip
         for (int i = 0; i < this.elements.size(); i++) {
@@ -1610,7 +1936,6 @@ public class AdobePremiereProject {
     /**
      * Modifie la version d'un projet Adobe Premiere.
      *
-     * @param fichier Nom du fichier de projet.
      * @param version Version qu'on veut pour ce projet.
      *
      * @throws FileNotFoundException
@@ -1618,17 +1943,13 @@ public class AdobePremiereProject {
      * @throws SAXException
      * @throws TransformerConfigurationException
      */
-    public static void downgrade(File fichier, String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
+    public void downgrade(String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
 
-        String name_file = fichier.getAbsolutePath().replace(".prproj", "");
+        File fichier_tmp = this.getFichierXMLTemporaire();
 
-        System.out.println("Nom de fichier : " + fichier.getName());
+        Utils.decompressGzipFile(fichier, fichier_tmp);
 
-        String name_file_tmp = name_file + ".tmp";
-
-        decompressGzipFile(name_file + ".prproj", name_file_tmp);
-
-        Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(name_file_tmp));
+        Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
 
         NodeList list = xml.getDocumentElement().getChildNodes();
 
@@ -1656,67 +1977,20 @@ public class AdobePremiereProject {
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
         DOMSource source = new DOMSource(xml);
-        StreamResult result = new StreamResult(new File(name_file + "2.tmp"));
+
+        File xml_temporaire = new File(fichier_tmp.getAbsolutePath().replace(EXTENSION_TMP, ""));
+
+        StreamResult result = new StreamResult(xml_temporaire);
         transformer.transform(source, result);
 
         //For console Output.
         StreamResult consoleResult = new StreamResult(System.out);
         transformer.transform(source, consoleResult);
 
-        compressGzipFile(name_file + "2.tmp", name_file + "_CC2017.prproj");
+        Utils.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
 
         // On supprime les fichiers temporaires.
-        new File(name_file + ".tmp").delete();
-        new File(name_file + "2.tmp").delete();
-    }
-
-    /**
-     * Décompresser un projet Adobe Premiere.
-     *
-     * @param gzipFile
-     * @param newFile
-     */
-    private static void decompressGzipFile(String gzipFile, String newFile) {
-        try {
-            FileInputStream fis = new FileInputStream(gzipFile);
-            GZIPInputStream gis = new GZIPInputStream(fis);
-            FileOutputStream fos = new FileOutputStream(newFile);
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = gis.read(buffer)) != -1) {
-                fos.write(buffer, 0, len);
-            }
-            //close resources
-            fos.close();
-            gis.close();
-        } catch (IOException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    /**
-     * Prend l'XML Adobe Premiere et en fait le fichier de projet Adobe
-     * Premiere.
-     *
-     * @param file
-     * @param gzipFile
-     */
-    private static void compressGzipFile(String file, String gzipFile) {
-        try {
-            FileInputStream fis = new FileInputStream(file);
-            FileOutputStream fos = new FileOutputStream(gzipFile);
-            GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) != -1) {
-                gzipOS.write(buffer, 0, len);
-            }
-            //close resources
-            gzipOS.close();
-            fos.close();
-            fis.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        fichier_tmp.delete();
+        xml_temporaire.delete();
     }
 }
