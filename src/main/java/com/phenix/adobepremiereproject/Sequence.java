@@ -1,5 +1,7 @@
 package com.phenix.adobepremiereproject;
 
+import com.phenix.tools.Framerate;
+import com.phenix.tools.Timecode;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
@@ -11,6 +13,14 @@ import java.util.ArrayList;
 public class Sequence extends ElementInSequence {
 
     private int id;
+
+    private Timecode start_timecode;
+
+    private Framerate framerate;
+
+    private int hauteur;
+
+    private int largeur;
 
     /**
      * Nombre de séquence qu'il y a dans le projet.
@@ -41,7 +51,7 @@ public class Sequence extends ElementInSequence {
         super(parent, name, Element.SEQUENCE);
 
         // Initialise la liste des clip dans la séquence.
-        liste_clip = new ArrayList<ElementInSequence>();
+        this.liste_clip = new ArrayList<ElementInSequence>();
 
         nombre_sequence++;
     }
@@ -52,6 +62,29 @@ public class Sequence extends ElementInSequence {
      * @param elementInSequence Element ajoutable à la séquence.
      */
     public void add(ElementInSequence elementInSequence) {
+        this.add(elementInSequence, null, null, null);
+    }
+
+    /**
+     * Ajoute un élément à la séquence.
+     *
+     * @param elementInSequence Element ajoutable à la séquence.
+     * @param tc_in
+     * @param start
+     */
+    public void add(ElementInSequence elementInSequence, Timecode tc_in, Timecode start) {
+        this.add(elementInSequence, tc_in, null, null);
+    }
+
+    /**
+     * Ajoute un élément à la séquence.
+     *
+     * @param elementInSequence Element ajoutable à la séquence.
+     * @param tc_in
+     * @param out
+     * @param start
+     */
+    public void add(ElementInSequence elementInSequence, Timecode tc_in, Timecode out, Timecode start) {
         this.liste_clip.add(elementInSequence);
     }
 
@@ -73,7 +106,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t\t\t\t\t<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
         file.append("\t\t\t\t</Properties>\n");
         file.append("\t\t\t</Node>\n");
-        file.append("\t\t\t<Name>" + this.getName() + "</Name>\n");
+        file.append("\t\t\t<Name>" + super.getName() + "</Name>\n");
         file.append("\t\t</ProjectItem>\n");
         file.append("\t\t<MasterClip ObjectURef=\"ad5bd5cb-4336-473d-a7f2-74386fbfd563\"/>\n");
         file.append("\t</ClipProjectItem>\n");
@@ -81,19 +114,19 @@ public class Sequence extends ElementInSequence {
 
     public void videoClip(PrintWriter file) {
         file.append("\t<VideoClip ObjectID=\"128\" ClassID=\"9308dbef-2440-4acb-9ab2-953b9a4e82ec\" Version=\"11\">\n");
-        file.append("\t	<Clip Version=\"18\">\n");
-        file.append("\t		<Node Version=\"1\">\n");
-        file.append("\t			<Properties Version=\"1\">\n");
-        file.append("\t				<BE.Prefs.SyntheticMedia.DefaultIsDropFrame>false</BE.Prefs.SyntheticMedia.DefaultIsDropFrame>\n");
-        file.append("\t				<asl.clip.label.color>14910691</asl.clip.label.color>\n");
-        file.append("\t				<asl.clip.label.name>BE.Prefs.LabelColors.3</asl.clip.label.name>\n");
-        file.append("\t			</Properties>\n");
-        file.append("\t		</Node>\n");
-        file.append("\t		<Source ObjectRef=\"83\"/>\n");
-        file.append("\t		<ClipID>b836a17f-9a92-4647-9fbc-2b020fc10552</ClipID>\n");
-        file.append("\t		<InPoint>914457600000000</InPoint>\n");
-        file.append("\t		<OutPoint>915727680000000</OutPoint>\n");
-        file.append("\t	</Clip>\n");
+        file.append("\t\t<Clip Version=\"18\">\n");
+        file.append("\t\t\t<Node Version=\"1\">\n");
+        file.append("\t\t\t\t<Properties Version=\"1\">\n");
+        file.append("\t\t\t\t\t<BE.Prefs.SyntheticMedia.DefaultIsDropFrame>false</BE.Prefs.SyntheticMedia.DefaultIsDropFrame>\n");
+        file.append("\t\t\t\t\t<asl.clip.label.color>14910691</asl.clip.label.color>\n");
+        file.append("\t\t\t\t\t<asl.clip.label.name>BE.Prefs.LabelColors.3</asl.clip.label.name>\n");
+        file.append("\t\t\t\t</Properties>\n");
+        file.append("\t\t\t</Node>\n");
+        file.append("\t\t\t<Source ObjectRef=\"83\"/>\n");
+        file.append("\t\t\t<ClipID>b836a17f-9a92-4647-9fbc-2b020fc10552</ClipID>\n");
+        file.append("\t\t\t<InPoint>914457600000000</InPoint>\n");
+        file.append("\t\t\t<OutPoint>915727680000000</OutPoint>\n");
+        file.append("\t\t</Clip>\n");
         file.append("\t</VideoClip>\n");
     }
 
@@ -271,6 +304,24 @@ public class Sequence extends ElementInSequence {
             file.append("\t	<mSourceChannelIndex>" + (i) + "</mSourceChannelIndex>\n");
             file.append("\t</ClipChannelSerializer>\n");
         }
+    }
+
+    public void setStartTimecode(Timecode start_timecode) {
+        this.start_timecode = start_timecode;
+    }
+
+    public void setFramerate(Framerate framerate) {
+        this.framerate = framerate;
+    }
+
+    public void setResolution(ResolutionStandard resolution) {
+        this.largeur = resolution.getLargeur();
+        this.hauteur = resolution.getHauteur();
+    }
+
+    public void setResolution(int largeur, int hauteur) {
+        this.largeur = largeur;
+        this.hauteur = hauteur;
     }
 
     public void audioTrackGroup(PrintWriter file) {

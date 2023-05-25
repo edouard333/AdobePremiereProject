@@ -16,32 +16,32 @@ public class AudioComponentParam {
     /**
      *
      */
-    private String ClassID;
+    private final String ClassID;
 
     /**
      *
      */
-    private int UpperBound;
+    private final int UpperBound;
 
     /**
      *
      */
-    private String Name;
+    private final String Name;
 
     /**
      *
      */
-    private String UnitsString;
+    private final String UnitsString;
 
     /**
      *
      */
-    private int ParameterControlType;
+    private final int ParameterControlType;
 
     /**
      *
      */
-    private long Timestamp;
+    private final long Timestamp;
 
     public AudioComponentParam(int ObjectID, String ClassID, int UpperBound, String Name, String UnitsString, int ParameterControlType, long Timestamp) {
         this.ObjectID = ObjectID;

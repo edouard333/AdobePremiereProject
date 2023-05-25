@@ -6,7 +6,7 @@ import java.io.PrintWriter;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-abstract class ElementInSequence extends Element {
+public abstract class ElementInSequence extends Element {
 
     /**
      *

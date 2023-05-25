@@ -2,6 +2,7 @@ package com.phenix.adobepremiereproject;
 
 import com.phenix.adobepremiereproject.adobetitle.AdobeTitle;
 import com.phenix.adobepremiereproject.adobetitle.Text;
+import com.phenix.tools.Timecode;
 import java.io.PrintWriter;
 
 /**
@@ -26,6 +27,8 @@ public class Title extends ElementInSequence {
      */
     private static int nombre_title = 1;
 
+    private Timecode duree;
+
     /**
      *
      * @param name
@@ -48,27 +51,12 @@ public class Title extends ElementInSequence {
     }
 
     /**
+     * Ajout d'un text.
      *
-     * @return
+     * @param text
      */
-    public static int getTitleNumber() {
-        return nombre_title;
-    }
-
-    @Override
-    public void toXML(PrintWriter file, int order) {
-        file.append("    <ClipProjectItem ObjectUID=\"" + this.current_ObjectURef + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
-        file.append("		<ProjectItem Version=\"1\">\n");
-        file.append("			<Node Version=\"1\">\n");
-        file.append("				<Properties Version=\"1\">\n");
-        file.append("					<Column.PropertyText.Label>BE.Prefs.LabelColors.3</Column.PropertyText.Label>\n");
-        file.append("					<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
-        file.append("				</Properties>\n");
-        file.append("			</Node>\n");
-        file.append("			<Name>TITRE</Name>\n");
-        file.append("		</ProjectItem>\n");
-        file.append("		<MasterClip ObjectURef=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\"/>\n");
-        file.append("	</ClipProjectItem>\n");
+    public void addText(Text text) {
+        adobeTitle.texts.add(text);
     }
 
     /**
@@ -103,16 +91,17 @@ public class Title extends ElementInSequence {
         file.append("\t</ClipChannelGroupVectorSerializer>\n");
     }
 
-    //@Override
-    public void videoMediaSource(PrintWriter file) {
-        file.append("\t<VideoMediaSource ObjectID=\"83\" ClassID=\"e64ddf74-8fac-4682-8aa8-0e0ca2248949\" Version=\"2\">\n");
-        file.append("\t\t<MediaSource Version=\"3\">\n");
-        file.append("\t\t\t<Content Version=\"10\">\n");
-        file.append("\t\t\t</Content>\n");
-        file.append("\t\t\t<Media ObjectURef=\"285b90b1-ba3a-48f2-9807-34d474e53f16\"/>\n");
-        file.append("\t\t</MediaSource>\n");
-        file.append("\t\t<OriginalDuration>10973491200000000</OriginalDuration>\n");
-        file.append("\t</VideoMediaSource>\n");
+    /**
+     *
+     * @return
+     */
+    public static int getTitleNumber() {
+        return nombre_title;
+    }
+
+    @Override
+    void inSequence(PrintWriter file) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -136,17 +125,39 @@ public class Title extends ElementInSequence {
     }
 
     /**
-     * Ajout d'un text.
+     * Définit la durée du titre.
      *
-     * @param text
+     * @param duree
      */
-    public void addText(Text text) {
-        adobeTitle.texts.add(text);
+    public void setDuree(Timecode duree) {
+        this.duree = duree;
     }
 
     @Override
-    void inSequence(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void toXML(PrintWriter file, int order) {
+        file.append("    <ClipProjectItem ObjectUID=\"" + this.current_ObjectURef + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
+        file.append("		<ProjectItem Version=\"1\">\n");
+        file.append("			<Node Version=\"1\">\n");
+        file.append("				<Properties Version=\"1\">\n");
+        file.append("					<Column.PropertyText.Label>BE.Prefs.LabelColors.3</Column.PropertyText.Label>\n");
+        file.append("					<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
+        file.append("				</Properties>\n");
+        file.append("			</Node>\n");
+        file.append("			<Name>TITRE</Name>\n");
+        file.append("		</ProjectItem>\n");
+        file.append("		<MasterClip ObjectURef=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\"/>\n");
+        file.append("	</ClipProjectItem>\n");
     }
 
+    //@Override
+    public void videoMediaSource(PrintWriter file) {
+        file.append("\t<VideoMediaSource ObjectID=\"83\" ClassID=\"e64ddf74-8fac-4682-8aa8-0e0ca2248949\" Version=\"2\">\n");
+        file.append("\t\t<MediaSource Version=\"3\">\n");
+        file.append("\t\t\t<Content Version=\"10\">\n");
+        file.append("\t\t\t</Content>\n");
+        file.append("\t\t\t<Media ObjectURef=\"285b90b1-ba3a-48f2-9807-34d474e53f16\"/>\n");
+        file.append("\t\t</MediaSource>\n");
+        file.append("\t\t<OriginalDuration>10973491200000000</OriginalDuration>\n");
+        file.append("\t</VideoMediaSource>\n");
+    }
 }

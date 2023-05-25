@@ -8,9 +8,9 @@ import java.io.PrintWriter;
  */
 public class BoolPropertyColumn extends Column {
 
-    private String PropertyBool;
+    private final String PropertyBool;
 
-    private String EditableKey;
+    private final String EditableKey;
 
     public BoolPropertyColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width, String PropertyBool, String EditableKey) {
         super("BoolPropertyColumn", ObjectID, "1d4dd772-4985-4f43-874a-84b2b566e724", Name, ID, Type, Class, IsHidden, Width);

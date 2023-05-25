@@ -2,7 +2,12 @@ package com.phenix.adobepremiereproject.test;
 
 import com.phenix.adobepremiereproject.AdobePremiereProject;
 import com.phenix.adobepremiereproject.Folder;
+import com.phenix.adobepremiereproject.Sequence;
+import com.phenix.adobepremiereproject.Title;
+import com.phenix.adobepremiereproject.adobetitle.Text;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
+import com.phenix.tools.Framerate;
+import com.phenix.tools.Timecode;
 import java.io.File;
 
 /**
@@ -16,6 +21,8 @@ public class Main {
         System.out.println("Helloow");
 
         try {
+            Framerate framerate = Framerate.F24;
+
             AdobePremiereProject projet = new AdobePremiereProject(new File("C:\\Users\\win10dev\\Desktop\\projet_premiere" + AdobePremiereProject.EXTENSION));
 
             Folder elements = new Folder("ELEMENTS", true);
@@ -29,6 +36,25 @@ public class Main {
 
             Folder exports = new Folder("EXPORTS", true);
             projet.addElement(exports);
+
+            Sequence sequence = new Sequence(exports, "sequence");
+            sequence.setStartTimecode(new Timecode("00:00:00:00", framerate.getValeur()));
+            sequence.setFramerate(framerate);
+            sequence.setResolution(1920, 1080);
+            projet.addElement(sequence);
+
+            Title titre = new Title("OKAY");
+            titre.setDuree(new Timecode("00:00:00:00"));
+
+            Text texte = new Text();
+            texte.setItalic(true);
+            texte.setText("Voici ce qu'on veut.");
+            texte.setPositionX(1920 / 2);
+            texte.setPositionY(1080 / 2);
+
+            titre.addText(texte);
+
+            sequence.add(titre, new Timecode("00:00:00:00", framerate.getValeur()), new Timecode("00:00:00:00"));
 
             projet.close();
         } catch (AdobePremiereProjectException exception) {
