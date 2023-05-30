@@ -35,7 +35,6 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <!-- S'il n'y avait pas de souci avec la DLL MediaInfo, on devrait avoir: com.phenix.archiveseq. ... -->
                             <mainClass>${project.groupId}.${project.artifactId}.Main</mainClass>
                         </manifest>
                     </archive>
