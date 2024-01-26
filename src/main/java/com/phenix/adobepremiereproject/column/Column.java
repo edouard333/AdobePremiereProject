@@ -8,24 +8,63 @@ import java.io.PrintWriter;
  */
 public class Column {
 
+    /**
+     * 
+     */
     private final String ColumnType;
 
+    /**
+     * 
+     */
     private final int ObjectID;
 
+    /**
+     * 
+     */
     private final String ClassID;
 
+    /**
+     * 
+     */
     private final String Name;
 
+    /**
+     * 
+     */
     private final String ID;
 
+    /**
+     * 
+     */
     private final int Type;
 
+    /**
+     * 
+     */
     private final int Class;
 
+    /**
+     * 
+     */
     private final boolean IsHidden;
 
+    /**
+     * 
+     */
     private final int Width;
 
+    /**
+     * 
+     * @param ColumnType
+     * @param ObjectID
+     * @param ClassID
+     * @param Name
+     * @param ID
+     * @param Type
+     * @param Class
+     * @param IsHidden
+     * @param Width 
+     */
     public Column(String ColumnType, int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
         this.ColumnType = ColumnType;
         this.ObjectID = ObjectID;
@@ -38,38 +77,74 @@ public class Column {
         this.Width = Width;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getObjectID() {
         return this.ObjectID;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public String getClassID() {
         return this.ClassID;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public String getName() {
         return this.Name;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public String getID() {
         return this.ID;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getType() {
         return this.Type;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getClassAtr() {
         return this.Class;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public boolean getIsHidden() {
         return this.IsHidden;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getWidth() {
         return this.ObjectID;
     }
 
+    /**
+     * 
+     * @param file 
+     */
     protected void toXML(PrintWriter file) {
         this.toXML(file, null);
     }

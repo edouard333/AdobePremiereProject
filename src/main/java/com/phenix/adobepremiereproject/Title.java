@@ -23,10 +23,13 @@ public class Title extends ElementInSequence {
     private AdobeTitle adobeTitle;
 
     /**
-     * Nombre de séquence qu'il y a dans le projet.
+     * Nombre de séquences qu'il y a dans le projet.
      */
     private static int nombre_title = 1;
 
+    /**
+     * 
+     */
     private Timecode duree;
 
     /**
@@ -99,11 +102,19 @@ public class Title extends ElementInSequence {
         return nombre_title;
     }
 
+    /**
+     * 
+     * @param file 
+     */
     @Override
     void inSequence(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     * 
+     * @param file 
+     */
     @Override
     public void media(PrintWriter file) {
         file.append("\t<Media ObjectUID=\"285b90b1-ba3a-48f2-9807-34d474e53f16\" ClassID=\"7a5c103e-f3ac-4391-b6b4-7cc3d2f9a7ff\" Version=\"26\">\n");
@@ -133,6 +144,11 @@ public class Title extends ElementInSequence {
         this.duree = duree;
     }
 
+    /**
+     * 
+     * @param file
+     * @param order 
+     */
     @Override
     public void toXML(PrintWriter file, int order) {
         file.append("    <ClipProjectItem ObjectUID=\"" + this.current_ObjectURef + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
@@ -149,6 +165,10 @@ public class Title extends ElementInSequence {
         file.append("	</ClipProjectItem>\n");
     }
 
+    /**
+     * 
+     * @param file 
+     */
     //@Override
     public void videoMediaSource(PrintWriter file) {
         file.append("\t<VideoMediaSource ObjectID=\"83\" ClassID=\"e64ddf74-8fac-4682-8aa8-0e0ca2248949\" Version=\"2\">\n");

@@ -19,15 +19,31 @@ public enum ResolutionStandard {
      */
     private final int largeur;
 
+    /**
+     * Crée une résolution standard avec une largeur et hauteur.
+     *
+     * @param largeur La largeur.
+     * @param hauteur La hauteur.
+     */
     private ResolutionStandard(int largeur, int hauteur) {
         this.largeur = largeur;
         this.hauteur = hauteur;
     }
 
+    /**
+     * Retourne la hauteur.
+     *
+     * @return La hauteur.
+     */
     public int getHauteur() {
         return this.hauteur;
     }
 
+    /**
+     * Retourne la largeur.
+     *
+     * @return La largeur.
+     */
     public int getLargeur() {
         return this.largeur;
     }

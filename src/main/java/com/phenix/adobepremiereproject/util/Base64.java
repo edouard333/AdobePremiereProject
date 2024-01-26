@@ -4,10 +4,6 @@
 package com.phenix.adobepremiereproject.util;
 
 /**
- *
- * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
- */
-/**
  * <p>
  * Encodes and decodes to and from Base64 notation.</p>
  * <p>

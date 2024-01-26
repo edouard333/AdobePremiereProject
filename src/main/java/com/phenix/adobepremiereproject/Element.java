@@ -43,7 +43,7 @@ abstract class Element implements AdobeXML {
     private final String name;
 
     /**
-     * A quel niveau il est dans la hiérachie.
+     * À quel niveau il est dans la hiérarchie.
      */
     private int level;
 
@@ -53,7 +53,7 @@ abstract class Element implements AdobeXML {
     protected final String classID;
 
     /**
-     * A quel dossier parent il est lié.
+     * À quel dossier parent il est lié.
      */
     protected Folder parent;
 
@@ -105,8 +105,13 @@ abstract class Element implements AdobeXML {
      */
     private static int numero_ObjectURef = 0;
 
+    /**
+     *
+     * @param parent
+     * @param name
+     * @param type_element
+     */
     public Element(Folder parent, String name, int type_element) {
-        this.setParent(parent);
         this.name = name;
 
         // Définit le class ID.
@@ -133,6 +138,8 @@ abstract class Element implements AdobeXML {
         this.id = numero_element;
         // Quantième folder créé, on incrément d'office.
         numero_element++;
+
+        this.setParent(parent);
     }
 
     /**
@@ -164,7 +171,7 @@ abstract class Element implements AdobeXML {
     }
 
     /**
-     * Niveau dans la hiérachie des dossier (0 == root, 1 = sub-folder, ...).
+     * Niveau dans la hiérarchie des dossiers (0 == root, 1 = sub-folder, ...).
      *
      * @return Niveau du dossier.
      */
@@ -195,9 +202,9 @@ abstract class Element implements AdobeXML {
     }
 
     /**
-     * Retourne ...
+     * Retourne l'Object UID.
      *
-     * @return
+     * @return L'Object UID.
      */
     public String getObjectUID() {
         return this.ObjectUID[id];
@@ -206,7 +213,7 @@ abstract class Element implements AdobeXML {
     /**
      * Retourne son lien avec le parent.
      *
-     * @return
+     * @return Lien du parent.
      */
     public String getCurrentObjectURef() {
         return this.current_ObjectURef;

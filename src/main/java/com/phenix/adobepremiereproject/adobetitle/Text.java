@@ -8,7 +8,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Partie qui conserne les textes dans les "Title" Adobe, la balise "TextChain".
+ * Partie qui concerne les textes dans les "Title" Adobe, la balise "TextChain".
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
@@ -20,7 +20,7 @@ public class Text {
     private Node node;
 
     /**
-     * Certaines propriété se trouve dedans pour le texte...
+     * Certaines propriétés se trouvent dedans pour le texte...
      */
     private TextDescription textDescription;
 
@@ -138,38 +138,74 @@ public class Text {
         this.needTextDescription = (textDescription != null);
     }
 
+    /**
+     * 
+     * @param x 
+     */
     public void setPositionX(float x) {
         this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(0).setTextContent(x + "");
     }
 
+    /**
+     * 
+     * @param y 
+     */
     public void setPositionY(float y) {
         this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(1).setTextContent(y + "");
     }
 
+    /**
+     * 
+     * @return 
+     */
     public float getPositionX() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(0).getTextContent());
     }
 
+    /**
+     * 
+     * @return 
+     */
     public float getPositionY() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(1).getTextContent());
     }
 
+    /**
+     * 
+     * @param x 
+     */
     public void setSizeX(float x) {
         this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(0).setTextContent(x + "");
     }
 
+    /**
+     * 
+     * @param y 
+     */
     public void setSizeY(float y) {
         this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(1).setTextContent(y + "");
     }
 
+    /**
+     * 
+     * @return 
+     */
     public float getSizeX() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(0).getTextContent());
     }
 
+    /**
+     * 
+     * @return 
+     */
     public float getSizeY() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(1).getTextContent());
     }
 
+    /**
+     * 
+     * @return 
+     */
     public String getFont() {
         return this.textDescription.getFont();
     }
@@ -203,6 +239,10 @@ public class Text {
         return this.node.getChildNodes().item(2).getChildNodes().item(4).getTextContent();
     }
 
+    /**
+     * 
+     * @param text 
+     */
     public void setText(String text) {
         for (int i = 0; i < this.node.getChildNodes().getLength(); i++) {
             System.out.println(">> " + this.node.getChildNodes().item(i).getNodeName());
@@ -244,7 +284,7 @@ public class Text {
     }
 
     /**
-     * Si des métadonnées en plus du texte sont nécessaire, ils seront retourné.
+     * Si des métadonnées en plus du texte sont nécessaires, ils seront retourné.
      *
      * @return Les métadonnées en plus pour le texte.
      */
@@ -256,10 +296,18 @@ public class Text {
         }
     }
 
+    /**
+     * 
+     * @return 
+     */
     public boolean isItalic() {
         return this.textDescription.isItalic();
     }
 
+    /**
+     * 
+     * @return 
+     */
     public boolean isBold() {
         return this.textDescription.isBold();
     }

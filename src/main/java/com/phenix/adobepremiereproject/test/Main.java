@@ -3,8 +3,6 @@ package com.phenix.adobepremiereproject.test;
 import com.phenix.adobepremiereproject.AdobePremiereProject;
 import com.phenix.adobepremiereproject.Folder;
 import com.phenix.adobepremiereproject.Sequence;
-import com.phenix.adobepremiereproject.Title;
-import com.phenix.adobepremiereproject.adobetitle.Text;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
 import com.phenix.tools.Framerate;
 import com.phenix.tools.Timecode;
@@ -21,9 +19,9 @@ public class Main {
         System.out.println("Helloow");
 
         try {
-            Framerate framerate = Framerate.F24;
+            Framerate framerate = Framerate.F25;
 
-            AdobePremiereProject projet = new AdobePremiereProject(new File("C:\\Users\\win10dev\\Desktop\\projet_premiere" + AdobePremiereProject.EXTENSION));
+            AdobePremiereProject projet = new AdobePremiereProject(new File("C:\\Users\\win10dev\\Desktop\\projet_premiere_25fps_custom" + AdobePremiereProject.EXTENSION));
 
             Folder elements = new Folder("ELEMENTS", true);
             projet.addElement(elements);
@@ -38,12 +36,12 @@ public class Main {
             projet.addElement(exports);
 
             Sequence sequence = new Sequence(exports, "sequence");
-            sequence.setStartTimecode(new Timecode("00:00:00:00", framerate.getValeur()));
+            sequence.setStartTimecode(new Timecode("01:30:30:00", framerate.getValeur()));
             sequence.setFramerate(framerate);
-            sequence.setResolution(1920, 1080);
+            sequence.setResolution(3840, 2160);
             projet.addElement(sequence);
 
-            Title titre = new Title("OKAY");
+            /*Title titre = new Title("OKAY");
             titre.setDuree(new Timecode("00:00:00:00"));
 
             Text texte = new Text();
@@ -55,7 +53,7 @@ public class Main {
             titre.addText(texte);
 
             sequence.add(titre, new Timecode("00:00:00:00", framerate.getValeur()), new Timecode("00:00:00:00"));
-
+             */
             projet.close();
         } catch (AdobePremiereProjectException exception) {
             System.out.println("Erreur gén : " + exception.getMessage() + ", " + exception.getClass());

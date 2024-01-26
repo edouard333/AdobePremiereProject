@@ -7,8 +7,10 @@ package com.phenix.adobepremiereproject.adobetitle.font;
  */
 public class ChicagoFont extends Font {
 
+    /**
+     *
+     */
     public ChicagoFont() {
         super("Chicago", "Chicago");
     }
-
 }

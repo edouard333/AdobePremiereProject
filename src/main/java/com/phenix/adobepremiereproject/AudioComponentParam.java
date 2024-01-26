@@ -43,6 +43,16 @@ public class AudioComponentParam {
      */
     private final long Timestamp;
 
+    /**
+     * 
+     * @param ObjectID
+     * @param ClassID
+     * @param UpperBound
+     * @param Name
+     * @param UnitsString
+     * @param ParameterControlType
+     * @param Timestamp 
+     */
     public AudioComponentParam(int ObjectID, String ClassID, int UpperBound, String Name, String UnitsString, int ParameterControlType, long Timestamp) {
         this.ObjectID = ObjectID;
         this.ClassID = ClassID;
@@ -53,6 +63,10 @@ public class AudioComponentParam {
         this.Timestamp = Timestamp;
     }
 
+    /**
+     * 
+     * @param file 
+     */
     public void toXML(PrintWriter file) {
         file.append("\t<AudioComponentParam ObjectID=\"" + (this.ObjectID++) + "\" ClassID=\"" + this.ClassID + "\" Version=\"9\">\n");
 

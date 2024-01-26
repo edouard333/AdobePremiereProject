@@ -16,6 +16,9 @@ class TextDescription {
      */
     private Node node;
 
+    /**
+     * 
+     */
     private int reference;
 
     /**
@@ -28,8 +31,14 @@ class TextDescription {
      */
     private boolean italic;
 
+    /**
+     * 
+     */
     private String font;
 
+    /**
+     * 
+     */
     private String style_font;
 
     /**
@@ -119,8 +128,7 @@ class TextDescription {
     /**
      * Définit la font à utiliser.
      *
-     * @param fullName
-     * @param familyName
+     * @param font
      */
     public void setFont(Font font) {
         //this.node
@@ -129,23 +137,39 @@ class TextDescription {
     /**
      * Définit le style de la font, si disponible.
      *
-     * @param fontStyle
+     * @param fontStyle Style de la font.
      */
     public void setFontStyle(String fontStyle) {
     }
 
+    /**
+     * 
+     * @return 
+     */
     public int getReference() {
         return this.reference;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public String getFont() {
         return this.font;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public boolean isItalic() {
         return this.italic;
     }
 
+    /**
+     * 
+     * @return 
+     */
     public boolean isBold() {
         return this.bold;
     }

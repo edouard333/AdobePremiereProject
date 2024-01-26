@@ -9,6 +9,9 @@ import java.io.PrintWriter;
 @FunctionalInterface
 public interface PropertiesAdd {
 
+    /**
+     *
+     * @param file
+     */
     public void addProperties(PrintWriter file);
-
 }

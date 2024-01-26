@@ -29,7 +29,7 @@ public class Font {
     }
 
     /**
-     * Récupère le nom complet de la font.
+     * Retourne le nom complet de la font.
      *
      * @return Nom complet.
      */
@@ -38,7 +38,7 @@ public class Font {
     }
 
     /**
-     * Récupère la famille de la font.
+     * Retourne la famille de la font.
      *
      * @return Famille de la font.
      */

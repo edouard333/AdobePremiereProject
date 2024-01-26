@@ -12,18 +12,33 @@ import java.util.ArrayList;
  */
 public class Sequence extends ElementInSequence {
 
+    /**
+     *
+     */
     private int id;
 
+    /**
+     *
+     */
     private Timecode start_timecode;
 
+    /**
+     *
+     */
     private Framerate framerate;
 
+    /**
+     *
+     */
     private int hauteur;
 
+    /**
+     *
+     */
     private int largeur;
 
     /**
-     * Nombre de séquence qu'il y a dans le projet.
+     * Nombre de séquences qu'il y a dans le projet.
      */
     private static int nombre_sequence = 1;
 
@@ -33,24 +48,24 @@ public class Sequence extends ElementInSequence {
     private ArrayList<ElementInSequence> liste_clip;
 
     /**
-     * ...
+     * Crée une séquence.
      *
-     * @param name
+     * @param name Nom de la séquence.
      */
     public Sequence(String name) {
         this(null, name);
     }
 
     /**
-     * ...
+     * Crée une séquence.
      *
-     * @param parent
-     * @param name
+     * @param parent Dossier où se trouve la séquence.
+     * @param name Nom de la séquence.
      */
     public Sequence(Folder parent, String name) {
         super(parent, name, Element.SEQUENCE);
 
-        // Initialise la liste des clip dans la séquence.
+        // Initialise la liste des clips dans la séquence.
         this.liste_clip = new ArrayList<ElementInSequence>();
 
         nombre_sequence++;
@@ -59,7 +74,7 @@ public class Sequence extends ElementInSequence {
     /**
      * Ajoute un élément à la séquence.
      *
-     * @param elementInSequence Element ajoutable à la séquence.
+     * @param elementInSequence Elément ajoutable à la séquence.
      */
     public void add(ElementInSequence elementInSequence) {
         this.add(elementInSequence, null, null, null);
@@ -68,7 +83,7 @@ public class Sequence extends ElementInSequence {
     /**
      * Ajoute un élément à la séquence.
      *
-     * @param elementInSequence Element ajoutable à la séquence.
+     * @param elementInSequence Elément ajoutable à la séquence.
      * @param tc_in
      * @param start
      */
@@ -79,7 +94,7 @@ public class Sequence extends ElementInSequence {
     /**
      * Ajoute un élément à la séquence.
      *
-     * @param elementInSequence Element ajoutable à la séquence.
+     * @param elementInSequence Elément ajoutable à la séquence.
      * @param tc_in
      * @param out
      * @param start
@@ -89,13 +104,19 @@ public class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne le nombre de séquence qu'il existe.
      *
-     * @return
+     * @return Nombre de séquence.
      */
     public static int getSequenceNumber() {
         return nombre_sequence;
     }
 
+    /**
+     *
+     * @param file Fichier où on écrit les données.
+     * @param order
+     */
     @Override
     public void toXML(PrintWriter file, int order) {
         file.append("\t<ClipProjectItem ObjectUID=\"" + this.getCurrentObjectURef() + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
@@ -112,6 +133,10 @@ public class Sequence extends ElementInSequence {
         file.append("\t</ClipProjectItem>\n");
     }
 
+    /**
+     *
+     * @param file
+     */
     public void videoClip(PrintWriter file) {
         file.append("\t<VideoClip ObjectID=\"128\" ClassID=\"9308dbef-2440-4acb-9ab2-953b9a4e82ec\" Version=\"11\">\n");
         file.append("\t\t<Clip Version=\"18\">\n");
@@ -130,6 +155,10 @@ public class Sequence extends ElementInSequence {
         file.append("\t</VideoClip>\n");
     }
 
+    /**
+     *
+     * @param file
+     */
     public void clip(PrintWriter file) {
         file.append("\t<ClipLoggingInfo ObjectID=\"40\" ClassID=\"77ab7fdd-dcdf-465d-9906-7a330ca1e738\" Version=\"7\">\n");
         file.append("\t	<MediaFrameRate>9223372036854775807</MediaFrameRate>\n");
@@ -139,13 +168,13 @@ public class Sequence extends ElementInSequence {
         file.append("\t		<Components Version=\"1\">\n");
         file.append("\t		</Components>\n");
         file.append("\t	</ComponentChain>\n");
+        file.append("\t	<ChannelType>3</ChannelType>\n");
+        file.append("\t	<AudioChannelLayout>[{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0}]</AudioChannelLayout>\n");
+        file.append("\t	<FrameRate>5292000</FrameRate>\n");
+        file.append("\t	<AutomationMode>1</AutomationMode>\n");
         file.append("\t	<DefaultVol>true</DefaultVol>\n");
         file.append("\t	<DefaultVolumeComponentID>1</DefaultVolumeComponentID>\n");
         file.append("\t	<DefaultChannelVolumeComponentID>2</DefaultChannelVolumeComponentID>\n");
-        file.append("\t	<ChannelType>3</ChannelType>\n");
-        file.append("\t	<FrameRate>5292000</FrameRate>\n");
-        file.append("\t	<AutomationMode>1</AutomationMode>\n");
-        file.append("\t	<AudioChannelLayout>[{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0}]</AudioChannelLayout>\n");
         file.append("\t</AudioComponentChain>\n");
         file.append("\t<AudioClip ObjectID=\"42\" ClassID=\"b8830d03-de02-41ee-84ec-fe566dc70cd9\" Version=\"8\">\n");
         file.append("\t	<Clip Version=\"18\">\n");
@@ -193,7 +222,6 @@ public class Sequence extends ElementInSequence {
     }
 
     /**
-     * TODO
      *
      * @param file
      */
@@ -239,60 +267,86 @@ public class Sequence extends ElementInSequence {
     }
 
     /**
-     * TODO
      *
      * @param file
      */
     public void sequence(PrintWriter file) {
         file.append("\t<Sequence ObjectUID=\"9d8a2607-057b-47be-8e25-56261a940524\" ClassID=\"6a15d903-8739-11d5-af2d-9b7855ad8974\" Version=\"11\">\n");
-        file.append("\t	<Node Version=\"1\">\n");
-        file.append("\t		<Properties Version=\"1\">\n");
-        file.append("\t			<HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>[{\"mNumber\":0,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>\n");
-        file.append("\t			<HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>[{\"mNumber\":0,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>\n");
-        file.append("\t			<MZ.EditLine>0</MZ.EditLine>\n");
-        file.append("\t			<MZ.Sequence.AudioTimeDisplayFormat>200</MZ.Sequence.AudioTimeDisplayFormat>\n");
-        file.append("\t			<MZ.Sequence.EditingModeGUID>9678af98-a7b7-4bdb-b477-7ac9c8df4a4e</MZ.Sequence.EditingModeGUID>\n");
-        file.append("\t			<MZ.Sequence.PreviewFrameSizeHeight>1080</MZ.Sequence.PreviewFrameSizeHeight>\n");
-        file.append("\t			<MZ.Sequence.PreviewFrameSizeWidth>1920</MZ.Sequence.PreviewFrameSizeWidth>\n");
-        file.append("\t			<MZ.Sequence.PreviewRenderingClassID>1297106761</MZ.Sequence.PreviewRenderingClassID>\n");
-        file.append("\t			<MZ.Sequence.PreviewRenderingPresetCodec>1297107278</MZ.Sequence.PreviewRenderingPresetCodec>\n");
-        file.append("\t			<MZ.Sequence.PreviewRenderingPresetPath>EncoderPresets\\SequencePreview\\9678af98-a7b7-4bdb-b477-7ac9c8df4a4e\\I-Frame Only MPEG.epr</MZ.Sequence.PreviewRenderingPresetPath>\n");
-        file.append("\t			<MZ.Sequence.PreviewUseMaxBitDepth>false</MZ.Sequence.PreviewUseMaxBitDepth>\n");
-        file.append("\t			<MZ.Sequence.PreviewUseMaxRenderQuality>false</MZ.Sequence.PreviewUseMaxRenderQuality>\n");
-        file.append("\t			<MZ.Sequence.VideoTimeDisplayFormat>100</MZ.Sequence.VideoTimeDisplayFormat>\n");
-        file.append("\t			<MZ.WorkInPoint>0</MZ.WorkInPoint>\n");
-        file.append("\t			<MZ.WorkOutPoint>15240960000000</MZ.WorkOutPoint>\n");
-        file.append("\t			<Monitor.ProgramZoomIn>0</Monitor.ProgramZoomIn>\n");
-        file.append("\t			<Monitor.ProgramZoomOut>0</Monitor.ProgramZoomOut>\n");
-        file.append("\t			<TL.SQAVDividerPosition>0.209354117513</TL.SQAVDividerPosition>\n");
-        file.append("\t			<TL.SQAudioVisibleBase>0</TL.SQAudioVisibleBase>\n");
-        file.append("\t			<TL.SQHeaderWidth>236</TL.SQHeaderWidth>\n");
-        file.append("\t			<TL.SQHideShyTracks>0</TL.SQHideShyTracks>\n");
-        file.append("\t			<TL.SQTimePerPixel>0.52310374891020051</TL.SQTimePerPixel>\n");
-        file.append("\t			<TL.SQVideoVisibleBase>0</TL.SQVideoVisibleBase>\n");
-        file.append("\t			<TL.SQVisibleBaseTime>0</TL.SQVisibleBaseTime>\n");
-        file.append("\t		</Properties>\n");
-        file.append("\t	</Node>\n");
-        file.append("\t	<PersistentGroupContainer Version=\"1\">\n");
-        file.append("\t		<LinkContainer Version=\"1\">\n");
-        file.append("\t		</LinkContainer>\n");
-        file.append("\t	</PersistentGroupContainer>\n");
+        file.append("\t\t<Node Version=\"1\">\n");
+        file.append("\t\t\t<Properties Version=\"1\">\n");
+        file.append("\t\t\t\t<AM.TrackScrollPosition>0</AM.TrackScrollPosition>\n");
+        file.append("\t\t\t\t<AM.TrackVScrollPosition>0</AM.TrackVScrollPosition>\n");
+        file.append("\t\t\t\t<AMM.CurrentSolo>[]</AMM.CurrentSolo>\n");
+        file.append("\t\t\t\t<HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>[{\"mNumber\":0,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>\n");
+        file.append("\t\t\t\t<HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>[{\"mNumber\":0,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>\n");
+        file.append("\t\t\t\t<MZ.EditLine>0</MZ.EditLine>\n");
+        file.append("\t\t\t\t<MZ.Sequence.AudioTimeDisplayFormat>200</MZ.Sequence.AudioTimeDisplayFormat>\n");
+        file.append("\t\t\t\t<MZ.Sequence.EditingModeGUID>9678af98-a7b7-4bdb-b477-7ac9c8df4a4e</MZ.Sequence.EditingModeGUID>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewFrameSizeHeight>1080</MZ.Sequence.PreviewFrameSizeHeight>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewFrameSizeWidth>1920</MZ.Sequence.PreviewFrameSizeWidth>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewRenderingClassID>1297106761</MZ.Sequence.PreviewRenderingClassID>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewRenderingPresetCodec>1297107278</MZ.Sequence.PreviewRenderingPresetCodec>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewRenderingPresetPath>EncoderPresets\\SequencePreview\\9678af98-a7b7-4bdb-b477-7ac9c8df4a4e\\I-Frame Only MPEG.epr</MZ.Sequence.PreviewRenderingPresetPath>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewUseMaxBitDepth>false</MZ.Sequence.PreviewUseMaxBitDepth>\n");
+        file.append("\t\t\t\t<MZ.Sequence.PreviewUseMaxRenderQuality>false</MZ.Sequence.PreviewUseMaxRenderQuality>\n");
+
+        String display_format = null;
+
+        if (this.framerate == Framerate.F24) {
+            display_format = "100";
+        } else if (this.framerate == Framerate.F25) {
+            display_format = "101";
+        }
+
+        file.append("\t\t\t\t<MZ.Sequence.VideoTimeDisplayFormat>" + display_format + "</MZ.Sequence.VideoTimeDisplayFormat>\n");
+        file.append("\t\t\t\t<MZ.WorkInPoint>0</MZ.WorkInPoint>\n");
+        file.append("\t\t\t\t<MZ.WorkOutPoint>15240960000000</MZ.WorkOutPoint>\n");
+
+        if (this.start_timecode.toImage() != 0) {
+            Timecode tmp = new Timecode(this.start_timecode.toString(), Framerate.F24.getValeur());
+
+            long div = 0;
+
+            if (this.framerate == Framerate.F24) {
+                div = 10584000000L;
+            } else if (this.framerate == Framerate.F25) {
+                div = 10160640000L;
+            }
+
+            file.append("\t\t\t\t<MZ.ZeroPoint>" + (this.start_timecode.toImage() * div) + "</MZ.ZeroPoint>\n");
+        }
+
+        file.append("\t\t\t\t<Monitor.ProgramZoomIn>0</Monitor.ProgramZoomIn>\n");
+        file.append("\t\t\t\t<Monitor.ProgramZoomOut>0</Monitor.ProgramZoomOut>\n");
+        file.append("\t\t\t\t<TL.SQAVDividerPosition>0.209354117513</TL.SQAVDividerPosition>\n");
+        file.append("\t\t\t\t<TL.SQAudioVisibleBase>0</TL.SQAudioVisibleBase>\n");
+        file.append("\t\t\t\t<TL.SQHeaderWidth>236</TL.SQHeaderWidth>\n");
+        file.append("\t\t\t\t<TL.SQHideShyTracks>0</TL.SQHideShyTracks>\n");
+        file.append("\t\t\t\t<TL.SQTimePerPixel>0.52310374891020051</TL.SQTimePerPixel>\n");
+        file.append("\t\t\t\t<TL.SQVideoVisibleBase>0</TL.SQVideoVisibleBase>\n");
+        file.append("\t\t\t\t<TL.SQVisibleBaseTime>0</TL.SQVisibleBaseTime>\n");
+        file.append("\t\t\t</Properties>\n");
+        file.append("\t\t</Node>\n");
+        file.append("\t\t<PersistentGroupContainer Version=\"1\">\n");
+        file.append("\t\t\t<LinkContainer Version=\"1\">\n");
+        file.append("\t\t\t</LinkContainer>\n");
+        file.append("\t\t</PersistentGroupContainer>\n");
 
         int ObjectRef = 100;
 
-        file.append("\t	<TrackGroups Version=\"1\">\n");
-        file.append("\t		<TrackGroup Version=\"1\" Index=\"0\">\n");
-        file.append("\t			<First>80b8e3d5-6dca-4195-aefb-cb5f407ab009</First>\n");
-        file.append("\t			<Second ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
-        file.append("\t		</TrackGroup>\n");
-        file.append("\t		<TrackGroup Version=\"1\" Index=\"1\">\n");
-        file.append("\t			<First>228cda18-3625-4d2d-951e-348879e4ed93</First>\n");
-        file.append("\t			<Second ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
-        file.append("\t		</TrackGroup>\n");
-        file.append("\t	</TrackGroups>\n");
-        file.append("\t	<ID>1</ID>\n");
-        file.append("\t	<Name>" + this.getName() + "</Name>\n");
-        file.append("\t	<PreviewFormatIdentifier>b0f75bf9-a1fa-f37f-f0e2-3a24000000fa</PreviewFormatIdentifier>\n");
+        file.append("\t\t<TrackGroups Version=\"1\">\n");
+        file.append("\t\t\t<TrackGroup Version=\"1\" Index=\"0\">\n");
+        file.append("\t\t\t\t<First>80b8e3d5-6dca-4195-aefb-cb5f407ab009</First>\n");
+        file.append("\t\t\t\t<Second ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
+        file.append("\t\t\t</TrackGroup>\n");
+        file.append("\t\t\t<TrackGroup Version=\"1\" Index=\"1\">\n");
+        file.append("\t\t\t\t<First>228cda18-3625-4d2d-951e-348879e4ed93</First>\n");
+        file.append("\t\t\t\t<Second ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
+        file.append("\t\t\t</TrackGroup>\n");
+        file.append("\t\t</TrackGroups>\n");
+        file.append("\t\t<ID>1</ID>\n");
+        file.append("\t\t<Name>" + this.getName() + "</Name>\n");
+        file.append("\t\t<PreviewFormatIdentifier>b0f75bf9-a1fa-f37f-f0e2-3a24000000fa</PreviewFormatIdentifier>\n");
         file.append("\t</Sequence>\n");
 
         String classID = "5c89aa7a-89a6-4483-becd-f2b1def42316";
@@ -306,24 +360,45 @@ public class Sequence extends ElementInSequence {
         }
     }
 
+    /**
+     *
+     * @param start_timecode
+     */
     public void setStartTimecode(Timecode start_timecode) {
         this.start_timecode = start_timecode;
     }
 
+    /**
+     *
+     * @param framerate
+     */
     public void setFramerate(Framerate framerate) {
         this.framerate = framerate;
     }
 
+    /**
+     *
+     * @param resolution
+     */
     public void setResolution(ResolutionStandard resolution) {
         this.largeur = resolution.getLargeur();
         this.hauteur = resolution.getHauteur();
     }
 
+    /**
+     *
+     * @param largeur
+     * @param hauteur
+     */
     public void setResolution(int largeur, int hauteur) {
         this.largeur = largeur;
         this.hauteur = hauteur;
     }
 
+    /**
+     *
+     * @param file
+     */
     public void audioTrackGroup(PrintWriter file) {
         int ObjectID = 100;
         int ObjectRef = 103;
@@ -347,10 +422,11 @@ public class Sequence extends ElementInSequence {
         file.append("\t		<Tracks Version=\"1\">\n");
         file.append("\t			<Track Index=\"0\" ObjectURef=\"9b6d8c60-7c45-411d-ba73-4d14d6a2fa4d\"/>\n");
         file.append("\t		</Tracks>\n");
-        file.append("\t		<FrameRate>10584000000</FrameRate>\n");
+        long framerate_ = (long) (254016000000L / this.framerate.getValeur());
+        file.append("\t		<FrameRate>" + framerate_ + "</FrameRate>\n");
         file.append("\t		<NextTrackID>2</NextTrackID>\n");
         file.append("\t	</TrackGroup>\n");
-        file.append("\t	<FrameRect>0,0,1920,1080</FrameRect>\n");
+        file.append("\t	<FrameRect>0,0," + this.largeur + "," + this.hauteur + "</FrameRect>\n");
         file.append("\t	<PixelAspectRatio>1,1</PixelAspectRatio>\n");
         file.append("\t	<FieldType>0</FieldType>\n");
         file.append("\t	<AllowLinearCompositing>true</AllowLinearCompositing>\n");
@@ -361,7 +437,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t<VideoStream ObjectID=\"" + (ObjectID++) + "\" ClassID=\"a36e4719-3ec6-4a0c-ab11-8b4aab377aa5\" Version=\"15\">\n");
         file.append("\t	<IsStill>true</IsStill>\n");
         file.append("\t	<FrameRate>10584000000</FrameRate>\n");
-        file.append("\t	<FrameRect>0,0,1920,1080</FrameRect>\n");
+        file.append("\t	<FrameRect>0,0," + this.largeur + "," + this.hauteur + "</FrameRect>\n");
         file.append("\t	<Duration>10973491200000000</Duration>\n");
         file.append("\t	<AlphaType>1</AlphaType>\n");
         file.append("\t	<CodecType>1416197228</CodecType>\n");
@@ -502,7 +578,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t			<Node Version=\"1\">\n");
         file.append("\t				<Properties Version=\"1\">\n");
         file.append("\t					<MZ.SourceTrackNumber>0</MZ.SourceTrackNumber>\n");
-        file.append("\t					<MZ.SourceTrackState>" + ((this.liste_clip.size() > 0) ? "2" : "0") + "</MZ.SourceTrackState>\n");
+        file.append("\t					<MZ.SourceTrackState>" + ((!this.liste_clip.isEmpty()) ? "2" : "0") + "</MZ.SourceTrackState>\n");
         file.append("\t					<MZ.TrackTargeted>1</MZ.TrackTargeted>\n");
         file.append("\t					<TL.SQTrackExpanded>0</TL.SQTrackExpanded>\n");
         file.append("\t					<TL.SQTrackExpandedHeight>25</TL.SQTrackExpandedHeight>\n");
@@ -519,7 +595,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t		<ClipItems Version=\"3\">\n");
 
         // Ajoute dans la séquence ici l'item/clip.
-        if (this.liste_clip.size() > 0) {
+        if (!this.liste_clip.isEmpty()) {
             file.append("\t\t\t\t<TrackItems Version=\"1\">\n");
             file.append("\t\t\t\t\t<TrackItem Index=\"0\" ObjectRef=\"111\"/>\n");
             file.append("\t\t\t\t</TrackItems>\n");
@@ -544,9 +620,9 @@ public class Sequence extends ElementInSequence {
         file.append("\t		</Components>\n");
         file.append("\t	</ComponentChain>\n");
         file.append("\t	<ChannelType>0</ChannelType>\n");
+        file.append("\t	<AudioChannelLayout>[{\"channellabel\":0}]</AudioChannelLayout>\n");
         file.append("\t	<FrameRate>5292000</FrameRate>\n");
         file.append("\t	<AutomationMode>1</AutomationMode>\n");
-        file.append("\t	<AudioChannelLayout>[{\"channellabel\":0}]</AudioChannelLayout>\n");
         file.append("\t</AudioComponentChain>\n");
         file.append("\t<MonoTo16ChannelPanProcessor ObjectID=\"" + (ObjectID++) + "\" ClassID=\"8c9778ad-af4e-4e98-99fe-542f4eda2dac\" Version=\"2\">\n");
         file.append("\t	<DirectPanProcessor Version=\"2\">\n");
@@ -560,10 +636,10 @@ public class Sequence extends ElementInSequence {
         file.append("\t					<Bypass>false</Bypass>\n");
         file.append("\t					<Intrinsic>false</Intrinsic>\n");
         file.append("\t				</Component>\n");
-        file.append("\t				<AudioComponentType>0</AudioComponentType>\n");
-        file.append("\t				<FrameRate>5292000</FrameRate>\n");
         file.append("\t				<ChannelType>0</ChannelType>\n");
         file.append("\t				<AudioChannelLayout>[{\"channellabel\":0}]</AudioChannelLayout>\n");
+        file.append("\t				<FrameRate>5292000</FrameRate>\n");
+        file.append("\t				<AudioComponentType>0</AudioComponentType>\n");
         file.append("\t			</AudioComponent>\n");
         file.append("\t			<OutputAudioChannelLayout>[{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0}]</OutputAudioChannelLayout>\n");
         file.append("\t		</PanProcessor>\n");
@@ -594,10 +670,10 @@ public class Sequence extends ElementInSequence {
         file.append("\t					<Bypass>false</Bypass>\n");
         file.append("\t					<Intrinsic>false</Intrinsic>\n");
         file.append("\t				</Component>\n");
-        file.append("\t				<AudioComponentType>0</AudioComponentType>\n");
-        file.append("\t				<FrameRate>5292000</FrameRate>\n");
         file.append("\t				<ChannelType>0</ChannelType>\n");
         file.append("\t				<AudioChannelLayout>[{\"channellabel\":0}]</AudioChannelLayout>\n");
+        file.append("\t				<FrameRate>5292000</FrameRate>\n");
+        file.append("\t				<AudioComponentType>0</AudioComponentType>\n");
         file.append("\t			</AudioComponent>\n");
         file.append("\t			<OutputAudioChannelLayout>[{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0}]</OutputAudioChannelLayout>\n");
         file.append("\t		</PanProcessor>\n");
@@ -624,10 +700,10 @@ public class Sequence extends ElementInSequence {
         file.append("\t				<Bypass>false</Bypass>\n");
         file.append("\t				<Intrinsic>false</Intrinsic>\n");
         file.append("\t			</Component>\n");
-        file.append("\t			<AudioComponentType>0</AudioComponentType>\n");
-        file.append("\t			<FrameRate>5292000</FrameRate>\n");
         file.append("\t			<ChannelType>3</ChannelType>\n");
         file.append("\t			<AudioChannelLayout>[{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0},{\"channellabel\":0}]</AudioChannelLayout>\n");
+        file.append("\t			<FrameRate>5292000</FrameRate>\n");
+        file.append("\t			<AudioComponentType>0</AudioComponentType>\n");
         file.append("\t		</AudioComponent>\n");
         file.append("\t	</PanProcessor>\n");
         file.append("\t	<DefaultPannerInputChannelType>3</DefaultPannerInputChannelType>\n");
@@ -644,7 +720,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t</AudioTrackInlet>\n");
 
         // "VideoClipTrackItem"
-        if (this.liste_clip.size() > 0) {
+        if (!this.liste_clip.isEmpty()) {
             file.append("\t<VideoClipTrackItem ObjectID=\"" + (ObjectID++) + "\" ClassID=\"368b0406-29e3-4923-9fcd-094fbf9a1089\" Version=\"5\">\n");
             file.append("\t	<ClipTrackItem Version=\"6\">\n");
             file.append("\t		<ComponentOwner Version=\"1\">\n");
@@ -656,7 +732,7 @@ public class Sequence extends ElementInSequence {
             file.append("\t		</TrackItem>\n");
             file.append("\t		<SubClip ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
             file.append("\t	</ClipTrackItem>\n");
-            file.append("\t	<FrameRect>0,0,1920,1080</FrameRect>\n");
+            file.append("\t	<FrameRect>0,0," + this.largeur + "," + this.hauteur + "</FrameRect>\n");
             file.append("\t	<PixelAspectRatio>1,1</PixelAspectRatio>\n");
             file.append("\t</VideoClipTrackItem>\n");
         }
@@ -769,7 +845,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t</AudioMeter>\n");
 
         // VideoComponentChain.
-        if (this.liste_clip.size() > 0) {
+        if (!this.liste_clip.isEmpty()) {
             file.append("\t<VideoComponentChain ObjectID=\"" + (ObjectID++) + "\" ClassID=\"0970e08a-f58f-4108-b29a-1a717b8e12e2\" Version=\"1\">\n");
             file.append("\t	<ComponentChain Version=\"2\">\n");
             file.append("\t		<Node Version=\"1\">\n");
@@ -808,19 +884,30 @@ public class Sequence extends ElementInSequence {
         }
     }
 
+    /**
+     *
+     * @param file
+     */
     @Override
     public void inSequence(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     *
+     * @param file
+     */
     //@Override
     void videoMediaSource(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     *
+     * @param file
+     */
     @Override
     void media(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
     }
-
 }

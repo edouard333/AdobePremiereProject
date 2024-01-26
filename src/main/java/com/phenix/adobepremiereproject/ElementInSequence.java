@@ -26,10 +26,9 @@ public abstract class ElementInSequence extends Element {
     abstract void inSequence(PrintWriter file);
 
     /**
-     * Données lié à la balise "Media".
+     * Données liées à la balise "Media".
      *
      * @param file
      */
     abstract void media(PrintWriter file);
-
 }

@@ -1,6 +1,6 @@
 Génère un projet Adobe Premiere Pro à l'aide de Java.
 
-Cela génère un projet compatible et prévu pour Adobe Premiere Pro CC2017, cela doit être compatible avec les versions supérieurs.
+Cela génère un projet compatible et prévu pour Adobe Premiere Pro CC2017, cela doit être compatible avec les versions supérieures.
 
 Actuellement :
 * On peut ajouter des dossiers (dans des dossiers) dans le projet.
@@ -23,5 +23,5 @@ Roadmap :
   * Pouvoir insérer un élément (titre, image, son, ...) à une séquence.
   * Pouvoir insérer une séquence dans une séquence (notion de séquence imbriquée).
 
-Dans un 1er temps, les métadonnées (résolutions, framerate, stéréo, ...) des fichiers multimédias ajouté aux projets devront être géré par l'utilisateur.
-Dans un second temps, cela sera prit en charge (partiellement ou complètement) par le projet Java via MediaInfo.
+Dans un 1er temps, les métadonnées (résolutions, framerate, stéréo, ...) des fichiers multimédias ajoutés aux projets devront être géré par l'utilisateur.
+Dans un second temps, cela sera pris en charge (partiellement ou complètement) par le projet Java via MediaInfo.

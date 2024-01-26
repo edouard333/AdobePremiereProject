@@ -30,7 +30,7 @@ public class Utils {
         while ((len = fis.read(buffer)) != -1) {
             gzipOS.write(buffer, 0, len);
         }
-        //close resources
+        // close resources
         gzipOS.close();
         fos.close();
         fis.close();
@@ -53,7 +53,7 @@ public class Utils {
         while ((len = gis.read(buffer)) != -1) {
             fos.write(buffer, 0, len);
         }
-        //close resources
+        // close resources
         fos.close();
         gis.close();
     }

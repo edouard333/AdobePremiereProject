@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -40,10 +41,19 @@ import org.xml.sax.SAXException;
  */
 public class AdobePremiereProject {
 
+    /**
+     * Extension d'un projet Adobe Premiere.
+     */
     public static final String EXTENSION = ".prproj";
 
+    /**
+     * Extension pour les fichiers XML.
+     */
     public static final String EXTENSION_XML = ".xml";
 
+    /**
+     * Extension pour les fichiers temporaire.
+     */
     public static final String EXTENSION_TMP = ".tmp";
 
     /**
@@ -57,7 +67,7 @@ public class AdobePremiereProject {
     private final ArrayList<Element> elements;
 
     /**
-     * Créé le fichier de XML qui se retrouvera dans le ZIP.
+     * Crée le fichier de XML qui se retrouvera dans le ZIP.
      *
      * @param fichier Lieu et nom de fichier
      */
@@ -77,12 +87,17 @@ public class AdobePremiereProject {
         this.elements.add(element);
     }
 
+    /**
+     * Retourne le fichier XML temporaire.
+     *
+     * @return Le fichier XML temporaire.
+     */
     private File getFichierXMLTemporaire() {
         return new File(this.fichier.getAbsolutePath().replace(EXTENSION, EXTENSION_TMP));
     }
 
     /**
-     * Ecrit le fichier.
+     * Écrit le fichier de projet Adobe Premiere.
      *
      * @throws AdobePremiereProjectException
      */
@@ -92,7 +107,7 @@ public class AdobePremiereProject {
             // Cloture le fichier temporaire.
             File fichier_tmp = this.getFichierXMLTemporaire();
             OutputStream os = new FileOutputStream(fichier_tmp);
-            PrintWriter file = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
+            PrintWriter file = new PrintWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
 
             this.start(file);
             this.item(file);
@@ -116,26 +131,29 @@ public class AdobePremiereProject {
      * @param file Flux où écrire les données XML.
      */
     private void item(PrintWriter file) {
-        file.append("\t\t\t<Items Version=\"1\">\n");
 
-        Element element;
+        if (!this.elements.isEmpty()) {
+            file.append("\t\t\t<Items Version=\"1\">\n");
 
-        int index = 0;
+            Element element;
 
-        for (int i = 0; i < this.elements.size(); i++) {
-            element = this.elements.get(i);
+            int index = 0;
 
-            if (element.getLevel() == 0) {
-                file.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n");//fea076d7-a8ae-4c4e-b592-93acb1e074fc
-                index++;
+            for (int i = 0; i < this.elements.size(); i++) {
+                element = this.elements.get(i);
+
+                if (element.getLevel() == 0) {
+                    file.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
+                    index++;
+                }
             }
-        }
 
-        file.append("\t\t\t</Items>\n");
+            file.append("\t\t\t</Items>\n");
+        }
     }
 
     /**
-     * Créé les dossiers.
+     * Crée les dossiers.
      *
      * @param file Flux où il faut écrire.
      * @param level Niveau de dossier.
@@ -153,10 +171,12 @@ public class AdobePremiereProject {
     /**
      *
      * @param file
-     * @param object_id
-     * @param object_ref
-     * @param id_project_view_state
-     * @param id_original_project_view_state
+     * @param ObjectID
+     * @param ObjectRef
+     * @param ProjectViewStateID
+     * @param ProjectViewStateOriginalID
+     * @param LastViewed
+     * @param IconViewThumbnailSize
      */
     private void ProjectViewState(PrintWriter file, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
         file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
@@ -177,16 +197,22 @@ public class AdobePremiereProject {
         file.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
         file.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
         file.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<ColumnListContents.Version>15</ColumnListContents.Version>\n");
+        file.append("\t\t\t\t\t\t<ColumnListContents.Version>16</ColumnListContents.Version>\n");
         file.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
         file.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
         file.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
         file.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<Project.CloudSyncEnabled>false</Project.CloudSyncEnabled>\n");
         file.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
         file.append("\t\t\t\t\t</ProjectViewState>\n");
     }
 
+    /**
+     *
+     * @param file
+     * @param ObjectID
+     * @param column_index_max
+     * @param delta
+     */
     private void ColumnList(PrintWriter file, int ObjectID, int column_index_max, int delta) {
         file.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
         file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
@@ -200,18 +226,18 @@ public class AdobePremiereProject {
     }
 
     /**
-     * Ecrit la structure du projet, le début.
+     * Écrit la structure du projet, le début.
      *
      * @param file Flux où il faut écrire.
      */
     private void start(PrintWriter file) throws AdobePremiereProjectException {
 
-        String workspace_name = "Formation";
+        String workspace_name = "Montage";
 
         file.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
         file.append("<PremiereData Version=\"3\">\n");
         file.append("\t<Project ObjectRef=\"1\"/>\n");
-        file.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2022 + "\">\n");
+        file.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
         file.append("\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t<Properties Version=\"1\">\n");
         file.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
@@ -229,7 +255,7 @@ public class AdobePremiereProject {
         this.ProjectViewState(file, 1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1");
         this.ProjectViewState(file, 2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200");
 
-        int column_index_max_exclu = 55;
+        int column_index_max_exclu = 56;
         int delta = 5;
 
         this.ColumnList(file, 3, column_index_max_exclu, delta);
@@ -793,6 +819,16 @@ public class AdobePremiereProject {
                 100
         ));
 
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Statut de la transcription",
+                "Column.Intrinsic.TranscriptStatus",
+                63,
+                0,
+                false,
+                100
+        ));
+
         liste_column.add(new LabelColumn(
                 ++object_id,
                 "Libellé",
@@ -820,7 +856,7 @@ public class AdobePremiereProject {
                 0,
                 0,
                 false,
-                333
+                200
         ));
 
         liste_column.add(new StringColumn(
@@ -1347,6 +1383,16 @@ public class AdobePremiereProject {
                 100
         ));
 
+        liste_column.add(new StringColumn(
+                ++object_id,
+                "Statut de la transcription",
+                "Column.Intrinsic.TranscriptStatus",
+                63,
+                0,
+                false,
+                100
+        ));
+
         for (int i = 0; i < liste_column.size(); i++) {
 
             Column column = liste_column.get(i);
@@ -1375,6 +1421,7 @@ public class AdobePremiereProject {
         }
 
         file.append("\t\t\t\t</ProjectViewState.List>\n");
+        file.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
         file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
         file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
         file.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
@@ -1383,8 +1430,8 @@ public class AdobePremiereProject {
             file.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
         }
 
-        file.append("\t\t\t\t<MZ.BuildVersion.Created>23.2.0x69 - Wed Mar  1 16:01:33 2023</MZ.BuildVersion.Created>\n");
-        file.append("\t\t\t\t<MZ.BuildVersion.Modified>23.2.0x69 - Wed May 24 11:07:03 2023</MZ.BuildVersion.Modified>\n");
+        file.append("\t\t\t\t<MZ.BuildVersion.Created>24.0.0x58 - 22-01-24 12:03:57</MZ.BuildVersion.Created>\n");
+        file.append("\t\t\t\t<MZ.BuildVersion.Modified>24.0.0x58 - 22-01-24 12:03:59</MZ.BuildVersion.Modified>\n");
 
         // S'il y a une séquence dans le projet.
         if (Sequence.getSequenceNumber() > 1) {
@@ -1392,7 +1439,6 @@ public class AdobePremiereProject {
             file.append("\t\t\t\t<MZ.PrefixKey.OpenSequenceGuidList.1>9d8a2607-057b-47be-8e25-56261a940524</MZ.PrefixKey.OpenSequenceGuidList.1>\n");
         }
 
-        file.append("\t\t\t\t<MZ.Prefs.UseProjectItemOrMasterClipProperiesForTrackItems>false</MZ.Prefs.UseProjectItemOrMasterClipProperiesForTrackItems>\n");
         file.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
         file.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
         file.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspace_name + "</MZ.Project.WorkspaceName>\n");
@@ -1412,12 +1458,14 @@ public class AdobePremiereProject {
         file.append("\t\t<IngestSettings ObjectRef=\"10\"/>\n");
         file.append("\t\t<ProjectWorkspace ObjectRef=\"11\"/>\n");
         file.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
-        file.append("\t\t<NextID>1000001</NextID>\n");
         file.append("\t</Project>\n");
         file.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
         file.append("\t\t<ProjectItem Version=\"1\">\n");
         file.append("\t\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t\t<Properties Version=\"1\">\n");
+        file.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
+	file.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
+			
         file.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
         file.append("\t\t\t\t</Properties>\n");
         file.append("\t\t\t\t<ID>1000000</ID>\n");
@@ -1435,7 +1483,7 @@ public class AdobePremiereProject {
     private void end(PrintWriter file) {
         file.append("\t\t</ProjectItemContainer>\n");
         file.append("\t</RootProjectItem>\n");
-        file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"18\">\n");
+        file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
         file.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
         file.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
         file.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
@@ -1471,15 +1519,15 @@ public class AdobePremiereProject {
         String same_as_project = "SameAsProject";
 
         file.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
-        file.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
-        file.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
-        file.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
-        file.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
-        file.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
+        file.append("\t\t<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
         file.append("\t\t<CCLibrariesLocation0>" + same_as_project + "</CCLibrariesLocation0>\n");
-        file.append("<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
-        file.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
+        file.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
         file.append("\t\t<TransferMediaLocation0>" + same_as_project + "</TransferMediaLocation0>\n");
+        file.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
+        file.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
+        file.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
+        file.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
+        file.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
         file.append("\t</ScratchDiskSettings>\n");
 
         file.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
@@ -1487,11 +1535,11 @@ public class AdobePremiereProject {
         file.append("\t\t<Action>copy</Action>\n");
         file.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
         file.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
-        file.append("\t\t<ProxyDestination>SameAsProject</ProxyDestination>\n");
         file.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
         file.append("\t</IngestSettings>\n");
 
         file.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
+        file.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
         file.append("\t</WorkspaceSettings>\n");
 
         // Ajoute les dossiers de niveau 0 = ceux à la racine du projet.
@@ -1537,15 +1585,14 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
 
         file.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
         file.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
         file.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
-        file.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
         file.append("\t\t<VideoFrameRate>8475667200</VideoFrameRate>\n");
         file.append("\t\t<VideoFrameSize>0,0,720,480</VideoFrameSize>\n");
         file.append("\t\t<VideoCompressorFourCC>0</VideoCompressorFourCC>\n");
@@ -1555,6 +1602,7 @@ public class AdobePremiereProject {
         file.append("\t\t<AudioSampleType>3</AudioSampleType>\n");
         file.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
         file.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
+        file.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
         file.append("\t</CaptureSettings>\n");
 
         file.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
@@ -1595,9 +1643,9 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
 
         file.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
@@ -1628,9 +1676,9 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
 
         file.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
@@ -1661,9 +1709,10 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
+
         file.append("\t</AudioCompileSettings>\n");
 
         file.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
@@ -1694,9 +1743,9 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
 
         file.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
@@ -1727,9 +1776,9 @@ public class AdobePremiereProject {
 
         file.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
         file.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
+        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t\t<Compressor>1380013856</Compressor>\n");
         file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
         file.append("\t</AudioCompileSettings>\n");
 
         // Ajout les dossier de niveau 1 (sous-dossier).
@@ -1737,7 +1786,7 @@ public class AdobePremiereProject {
 
         String classID = "fb11c33a-b0a9-4465-aa94-b6d5db2628cf";
 
-        // Ajoute séquence/masterClip ici (de tous level ??????):
+        // Ajoute séquence/masterClip ici (de tous level ??????) :
         for (int i = 0; i < this.elements.size(); i++) {
 
             // Si c'est une séquence.
@@ -1757,12 +1806,12 @@ public class AdobePremiereProject {
             }
         }
 
-        // Ajout titre/masterClip ici (de tous level ????):
+        // Ajout titre/masterClip ici (de tous level ????) :
         for (int i = 0; i < this.elements.size(); i++) {
 
             // Si c'est une séquence.
             if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                file.append("\t<MasterClip ObjectUID=\"" + "8c85bb49-dcaf-4511-aed8-9f6cead61d2a" + "" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
+                file.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
                 file.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
                 file.append("\t\t<Clips Version=\"1\">\n");
                 file.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
@@ -1919,7 +1968,7 @@ public class AdobePremiereProject {
     }
 
     /**
-     * ...
+     * Version de Adobe Premiere.
      *
      * @return Liste des versions.
      */
@@ -1964,7 +2013,7 @@ public class AdobePremiereProject {
                 String attribute_version = balise_project.getAttribute("Version");
 
                 // Si pour l'attribut "Version" il y a une valeur, c'est la bonne balise !
-                if (!attribute_version.equals("")) {
+                if (!attribute_version.isEmpty()) {
                     balise_project.setAttribute("Version", version);
 
                     // On ne doit plus rien faire, donc on peut quitter la boucle.
@@ -1983,7 +2032,7 @@ public class AdobePremiereProject {
         StreamResult result = new StreamResult(xml_temporaire);
         transformer.transform(source, result);
 
-        //For console Output.
+        // For console Output.
         StreamResult consoleResult = new StreamResult(System.out);
         transformer.transform(source, consoleResult);
 

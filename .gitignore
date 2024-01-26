@@ -1,3 +1,6 @@
+# Ignore le dossier d'IntelliJ.
+.idea/*
+
 # Hidden file Mac OS
 .DS_Store
 

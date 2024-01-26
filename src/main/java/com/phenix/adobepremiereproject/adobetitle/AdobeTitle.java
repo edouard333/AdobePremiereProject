@@ -24,6 +24,9 @@ import org.xml.sax.SAXException;
  */
 public class AdobeTitle {
 
+    /**
+     * 
+     */
     private static int id = 0;
 
     /**
@@ -31,6 +34,9 @@ public class AdobeTitle {
      */
     private String data_decode;
 
+    /**
+     * 
+     */
     public ArrayList<Text> texts;
 
     /**
@@ -98,9 +104,7 @@ public class AdobeTitle {
                                     if (text_descriptions.item(l).getNodeName().equals("TextDescription")) {
                                         liste_text_description.add(new TextDescription(text_descriptions.item(l)));
                                     }
-
                                 }
-
                             }
 
                             if (layout.item(k).getNodeName().equals("Layers")) {
@@ -164,15 +168,21 @@ public class AdobeTitle {
      * Retourne les données pour être ajouté à l'XML de sortie.
      *
      * @return
+     * 
+     * @throws DataFormatException
+     * @throws UnsupportedEncodingException
      */
     public String toXML() throws DataFormatException, UnsupportedEncodingException {
-        // Prend les données décodée et les recompresse.
+        // Prend les données décodées et les recompresse.
         byte[] data = compress(this.data_decode); // TODO : on doit faire data_decode un XML à partir des données de ArrayList<Text>... :'(
 
         // Puis réapplique la Base 64.
         return Base64.encodeBytes(data, Base64.DONT_BREAK_LINES);
     }
 
+    /**
+     * 
+     */
     private byte[] header;
 
     /**
@@ -215,9 +225,9 @@ public class AdobeTitle {
      *
      * @param decompressed Les données décompressées.
      *
-     * @return Données compressée.
+     * @return Données compressées.
      */
-    private byte[] compress(String decompressed) throws DataFormatException, UnsupportedEncodingException {
+    private byte[] compress(String decompressed){
         byte[] input = decompressed.getBytes();
 
         ByteArrayOutputStream xmlout = new ByteArrayOutputStream(10000);
@@ -241,5 +251,4 @@ public class AdobeTitle {
 
         return xmlout.toByteArray();
     }
-
 }
