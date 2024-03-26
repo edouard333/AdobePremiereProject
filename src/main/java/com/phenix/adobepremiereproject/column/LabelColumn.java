@@ -4,7 +4,7 @@ import java.io.PrintWriter;
 
 /**
  *
- * @author Edouard Jeanjean <edouard128@hotmail.com>
+ * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public class LabelColumn extends Column {
 
