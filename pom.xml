@@ -4,7 +4,7 @@
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
     <name>AdobePremiereProject</name>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
     <packaging>jar</packaging>
     <url>https://github.com/studioequipeBE/AdobePremiereProject</url>
     
@@ -16,13 +16,15 @@
     </developers>
     
     <build>
-        <!-- Nom du Jar par défaut. -->
+        <!-- Nom du JAR par défaut. -->
         <finalName>${project.name}-${project.version}</finalName>
         
         <plugins>
             <!-- Permet d'ajouter les JAR externe au JAR créé. -->
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
                 <executions>
                     <execution>
                         <id>jar-with-dependencies</id>
@@ -41,7 +43,6 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <finalName>AdobePremiere-0.1.0</finalName> <!-- On définit le nom du JAR final. -->
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
             </plugin>
@@ -51,8 +52,8 @@
     <dependencies>
         <dependency>
             <groupId>com.phenix</groupId>
-            <artifactId>tools</artifactId>
-            <version>1.4.1</version>
+            <artifactId>timecode</artifactId>
+            <version>0.7.0</version>
         </dependency>
     </dependencies>
     

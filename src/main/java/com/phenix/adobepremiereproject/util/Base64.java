@@ -3,6 +3,8 @@
  */
 package com.phenix.adobepremiereproject.util;
 
+import java.io.IOException;
+
 /**
  * <p>
  * Encodes and decodes to and from Base64 notation.</p>
@@ -37,12 +39,10 @@ package com.phenix.adobepremiereproject.util;
  * Base64.InputStream class to encode and decode on the fly which uses less
  * memory than encoding/decoding an entire file into memory before writing.</li>
  * <li>v2.2.1 - Fixed bug using URL_SAFE and ORDERED encodings. Fixed bug when
- * using very small files (~< 40 bytes).</li>
- *  <li>v2.
- * 2 - Added some helper methods for encoding/decoding directly from one file to
- * the next. Also added a main() method to support command line
- * encoding/decoding from one file to the next. Also added these Base64
- * dialects:
+ * using very small files (~< 40 bytes).</li> <li>v2. 2 - Added some helper
+ * methods for encoding/decoding directly from one file to the next. Also added
+ * a main() method to support command line encoding/decoding from one file to
+ * the next. Also added these Base64 dialects:
  * <ol>
  * <li>The default is RFC3548 format.</li>
  * <li>Calling Base64.setFormat(Base64.BASE64_FORMAT.URLSAFE_FORMAT) generates
@@ -397,31 +397,6 @@ public class Base64 {
     }
 
     /**
-     * Encodes or decodes two files from the command line;
-     * <strong>feel free to delete this method (in fact you probably should) if
-     * you're embedding this code into a larger program.</strong>
-     */
-    public final static void main(String[] args) {
-        if (args.length < 3) {
-            usage("Not enough arguments.");
-        } // end if: args.length < 3
-        else {
-            String flag = args[0];
-            String infile = args[1];
-            String outfile = args[2];
-            if (flag.equals("-e")) {
-                Base64.encodeFileToFile(infile, outfile);
-            } // end if: encode
-            else if (flag.equals("-d")) {
-                Base64.decodeFileToFile(infile, outfile);
-            } // end else if: decode    
-            else {
-                usage("Unknown flag: " + flag);
-            }   // end else    
-        }   // end else
-    }   // end main
-
-    /**
      * Prints command line usage.
      *
      * @param msg A message to include with usage info.
@@ -622,6 +597,7 @@ public class Base64 {
      * Encodes a byte array into Base64 notation. Does not GZip-compress data.
      *
      * @param source The data to convert
+     * @return 
      * @since 1.4
      */
     public static String encodeBytes(byte[] source) {
@@ -646,6 +622,7 @@ public class Base64 {
      *
      * @param source The data to convert
      * @param options Specified options
+     * @return 
      * @see Base64#GZIP
      * @see Base64#DONT_BREAK_LINES
      * @since 2.0
@@ -660,6 +637,7 @@ public class Base64 {
      * @param source The data to convert
      * @param off Offset in array where conversion should begin
      * @param len Length of data to convert
+     * @return 
      * @since 1.4
      */
     public static String encodeBytes(byte[] source, int off, int len) {
@@ -685,9 +663,9 @@ public class Base64 {
      * @param source The data to convert
      * @param off Offset in array where conversion should begin
      * @param len Length of data to convert
-     * @param options Specified options
-     * @param options alphabet type is pulled from this (standard, url-safe,
-     * ordered)
+     * @param options Specified options alphabet type is pulled from this
+     * (standard, url-safe, ordered)
+     * @return 
      * @see Base64#GZIP
      * @see Base64#DONT_BREAK_LINES
      * @since 2.0
@@ -868,6 +846,7 @@ public class Base64 {
      * @param source The Base64 encoded data
      * @param off The offset of where to begin decoding
      * @param len The length of characters to decode
+     * @param options
      * @return decoded data
      * @since 1.3
      */
@@ -1355,6 +1334,7 @@ public class Base64 {
          * @return next byte
          * @since 1.3
          */
+        @Override
         public int read() throws java.io.IOException {
             // Do we need to get data?
             if (position < 0) {
@@ -1466,6 +1446,7 @@ public class Base64 {
          * @return bytes read into array or -1 if end of stream is encountered.
          * @since 1.3
          */
+        @Override
         public int read(byte[] dest, int off, int len) throws java.io.IOException {
             int i;
             int b;
@@ -1565,6 +1546,7 @@ public class Base64 {
          * @param theByte the byte to write
          * @since 1.3
          */
+        @Override
         public void write(int theByte) throws java.io.IOException {
             // Encoding suspended?
             if (suspendEncoding) {
@@ -1616,6 +1598,7 @@ public class Base64 {
          * @param len max number of bytes to read into array
          * @since 1.3
          */
+        @Override
         public void write(byte[] theBytes, int off, int len) throws java.io.IOException {
             // Encoding suspended?
             if (suspendEncoding) {
@@ -1632,8 +1615,10 @@ public class Base64 {
         /**
          * Method added by PHIL. [Thanks, PHIL. -Rob] This pads the buffer
          * without closing the stream.
+         *
+         * @throws IOException
          */
-        public void flushBase64() throws java.io.IOException {
+        public void flushBase64() throws IOException {
             if (position > 0) {
                 if (encode) {
                     out.write(encode3to4(b4, buffer, position, options));
@@ -1651,6 +1636,7 @@ public class Base64 {
          *
          * @since 1.3
          */
+        @Override
         public void close() throws java.io.IOException {
             // 1. Ensure that pending characters are written
             flushBase64();
@@ -1667,9 +1653,11 @@ public class Base64 {
          * Suspends encoding of the stream. May be helpful if you need to embed
          * a piece of base640-encoded data in a stream.
          *
+         * @throws IOException
+         *
          * @since 1.5.1
          */
-        public void suspendEncoding() throws java.io.IOException {
+        public void suspendEncoding() throws IOException {
             flushBase64();
             this.suspendEncoding = true;
         }   // end suspendEncoding

@@ -1,8 +1,8 @@
 package com.phenix.adobepremiereproject;
 
 import com.phenix.adobepremiereproject.column.BoolPropertyColumn;
-import com.phenix.adobepremiereproject.column.Column;
 import com.phenix.adobepremiereproject.column.CaptureSettingsColumn;
+import com.phenix.adobepremiereproject.column.Column;
 import com.phenix.adobepremiereproject.column.EditTextColumn;
 import com.phenix.adobepremiereproject.column.LabelColumn;
 import com.phenix.adobepremiereproject.column.NameColumn;

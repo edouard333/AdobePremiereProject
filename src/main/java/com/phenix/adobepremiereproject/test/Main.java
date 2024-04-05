@@ -4,8 +4,8 @@ import com.phenix.adobepremiereproject.AdobePremiereProject;
 import com.phenix.adobepremiereproject.Folder;
 import com.phenix.adobepremiereproject.Sequence;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
-import com.phenix.tools.Framerate;
-import com.phenix.tools.Timecode;
+import com.phenix.timecode.Framerate;
+import com.phenix.timecode.Timecode;
 import java.io.File;
 
 /**
@@ -21,7 +21,7 @@ public class Main {
         try {
             Framerate framerate = Framerate.F25;
 
-            AdobePremiereProject projet = new AdobePremiereProject(new File("C:\\Users\\win10dev\\Desktop\\projet_premiere_25fps_custom" + AdobePremiereProject.EXTENSION));
+            AdobePremiereProject projet = new AdobePremiereProject(new File(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "projet_premiere_25fps_custom" + AdobePremiereProject.EXTENSION));
 
             Folder elements = new Folder("ELEMENTS", true);
             projet.addElement(elements);

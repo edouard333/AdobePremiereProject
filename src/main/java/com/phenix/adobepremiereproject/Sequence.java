@@ -1,7 +1,7 @@
 package com.phenix.adobepremiereproject;
 
-import com.phenix.tools.Framerate;
-import com.phenix.tools.Timecode;
+import com.phenix.timecode.Framerate;
+import com.phenix.timecode.Timecode;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
