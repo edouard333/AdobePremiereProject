@@ -36,8 +36,8 @@ public class Text {
         try {
             this.node = (Node) DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_chain.xml"));
             this.textDescription = new TextDescription(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_description.xml")));
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
         this.needTextDescription = false;
     }
@@ -139,72 +139,72 @@ public class Text {
     }
 
     /**
-     * 
-     * @param x 
+     *
+     * @param x
      */
     public void setPositionX(float x) {
         this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(0).setTextContent(x + "");
     }
 
     /**
-     * 
-     * @param y 
+     *
+     * @param y
      */
     public void setPositionY(float y) {
         this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(1).setTextContent(y + "");
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public float getPositionX() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(0).getTextContent());
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public float getPositionY() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(1).getChildNodes().item(1).getTextContent());
     }
 
     /**
-     * 
-     * @param x 
+     *
+     * @param x
      */
     public void setSizeX(float x) {
         this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(0).setTextContent(x + "");
     }
 
     /**
-     * 
-     * @param y 
+     *
+     * @param y
      */
     public void setSizeY(float y) {
         this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(1).setTextContent(y + "");
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public float getSizeX() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(0).getTextContent());
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public float getSizeY() {
         return Float.parseFloat(this.node.getChildNodes().item(0).getChildNodes().item(2).getChildNodes().item(1).getTextContent());
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public String getFont() {
         return this.textDescription.getFont();
@@ -240,8 +240,8 @@ public class Text {
     }
 
     /**
-     * 
-     * @param text 
+     *
+     * @param text
      */
     public void setText(String text) {
         for (int i = 0; i < this.node.getChildNodes().getLength(); i++) {
@@ -284,7 +284,8 @@ public class Text {
     }
 
     /**
-     * Si des métadonnées en plus du texte sont nécessaires, ils seront retourné.
+     * Si des métadonnées en plus du texte sont nécessaires, ils seront
+     * retourné.
      *
      * @return Les métadonnées en plus pour le texte.
      */
@@ -297,16 +298,16 @@ public class Text {
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean isItalic() {
         return this.textDescription.isItalic();
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean isBold() {
         return this.textDescription.isBold();

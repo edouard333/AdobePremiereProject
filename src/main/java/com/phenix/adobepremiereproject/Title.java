@@ -28,7 +28,7 @@ public class Title extends ElementInSequence {
     private static int nombre_title = 1;
 
     /**
-     * 
+     *
      */
     private Timecode duree;
 
@@ -103,8 +103,8 @@ public class Title extends ElementInSequence {
     }
 
     /**
-     * 
-     * @param file 
+     *
+     * @param file
      */
     @Override
     void inSequence(PrintWriter file) {
@@ -112,8 +112,8 @@ public class Title extends ElementInSequence {
     }
 
     /**
-     * 
-     * @param file 
+     *
+     * @param file
      */
     @Override
     public void media(PrintWriter file) {
@@ -121,8 +121,8 @@ public class Title extends ElementInSequence {
         file.append("\t	<VideoStream ObjectRef=\"102\"/>\n");
         try {
             file.append("\t	<ImporterPrefs Encoding=\"base64\" BinaryHash=\"08750ff2-29d4-c8a2-ee5f-bb8400000e04\">" + adobeTitle.toXML() + "\n");
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
         file.append("\t	</ImporterPrefs>\n");
         file.append("\t	<FilePath>1414091852</FilePath>\n");
@@ -145,9 +145,9 @@ public class Title extends ElementInSequence {
     }
 
     /**
-     * 
+     *
      * @param file
-     * @param order 
+     * @param order
      */
     @Override
     public void toXML(PrintWriter file, int order) {
@@ -166,8 +166,8 @@ public class Title extends ElementInSequence {
     }
 
     /**
-     * 
-     * @param file 
+     *
+     * @param file
      */
     //@Override
     public void videoMediaSource(PrintWriter file) {

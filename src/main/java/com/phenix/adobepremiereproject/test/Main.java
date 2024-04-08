@@ -116,8 +116,8 @@ public class Main {
         try {
             // Génère le projet.
             projet.close();
-        } catch (IOException ex) {
-            System.out.println("Erreur : " + ex);
+        } catch (IOException exception) {
+            System.out.println("Erreur : " + exception.getMessage());
         }
          */
     }
