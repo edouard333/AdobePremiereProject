@@ -127,7 +127,7 @@ public class Sequence extends ElementInSequence {
         file.append("\t\t\t\t\t<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
         file.append("\t\t\t\t</Properties>\n");
         file.append("\t\t\t</Node>\n");
-        file.append("\t\t\t<Name>" + super.getName() + "</Name>\n");
+        file.append("\t\t\t<Name>" + this.getName() + "</Name>\n");
         file.append("\t\t</ProjectItem>\n");
         file.append("\t\t<MasterClip ObjectURef=\"ad5bd5cb-4336-473d-a7f2-74386fbfd563\"/>\n");
         file.append("\t</ClipProjectItem>\n");
