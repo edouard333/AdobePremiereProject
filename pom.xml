@@ -4,9 +4,9 @@
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
     <name>AdobePremiereProject</name>
-    <version>0.2.3</version>
+    <version>0.3.1</version>
     <packaging>jar</packaging>
-    <url>https://github.com/studioequipeBE/AdobePremiereProject</url>
+    <url>https://github.com/edouard333/AdobePremiereProject</url>
     
     <developers>
         <developer>

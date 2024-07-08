@@ -28,12 +28,12 @@ public class Sequence extends ElementInSequence {
     private Framerate framerate;
 
     /**
-     *
+     * Hauteur de l'image en pixel.
      */
     private int hauteur;
 
     /**
-     *
+     * Largeur de l'image en pixel.
      */
     private int largeur;
 
@@ -43,9 +43,24 @@ public class Sequence extends ElementInSequence {
     private static int nombre_sequence = 1;
 
     /**
+     * Position dans la timeline.
+     */
+    private Timecode position;
+
+    /**
      * Liste des éléments dans la séquence.
      */
     private ArrayList<ElementInSequence> liste_clip;
+
+    /**
+     * Liste des marqueurs de la séquence.
+     */
+    private ArrayList<MarkerInSequence> liste_marqueur;
+
+    /**
+     * Identifiant des markers.
+     */
+    private int markers_id;
 
     /**
      * Crée une séquence.
@@ -67,6 +82,7 @@ public class Sequence extends ElementInSequence {
 
         // Initialise la liste des clips dans la séquence.
         this.liste_clip = new ArrayList<ElementInSequence>();
+        this.liste_marqueur = new ArrayList<MarkerInSequence>();
 
         nombre_sequence++;
     }
@@ -84,23 +100,33 @@ public class Sequence extends ElementInSequence {
      * Ajoute un élément à la séquence.
      *
      * @param elementInSequence Elément ajoutable à la séquence.
-     * @param tc_in
-     * @param start
+     * @param tc_in Point in.
+     * @param start Position dans la séquence.
      */
     public void add(ElementInSequence elementInSequence, Timecode tc_in, Timecode start) {
-        this.add(elementInSequence, tc_in, null, null);
+        this.add(elementInSequence, tc_in, null, start);
     }
 
     /**
      * Ajoute un élément à la séquence.
      *
      * @param elementInSequence Elément ajoutable à la séquence.
-     * @param tc_in
-     * @param out
-     * @param start
+     * @param tc_in Point in.
+     * @param out Point out.
+     * @param start Position dans la séquence.
      */
     public void add(ElementInSequence elementInSequence, Timecode tc_in, Timecode out, Timecode start) {
         this.liste_clip.add(elementInSequence);
+    }
+
+    /**
+     * Ajouter un marqueur à la séquence.
+     *
+     * @param marqueur Le marqueur.
+     * @param timecode Timecode où doit se trouver le marqueur.
+     */
+    public void add(Marker marqueur, Timecode timecode) {
+        this.liste_marqueur.add(new MarkerInSequence(marqueur, timecode));
     }
 
     /**
@@ -271,6 +297,14 @@ public class Sequence extends ElementInSequence {
      * @param file
      */
     public void sequence(PrintWriter file) {
+        long div = 0;
+
+        if (this.framerate == Framerate.F24) {
+            div = 10584000000L;
+        } else if (this.framerate == Framerate.F25) {
+            div = 10160640000L;
+        }
+
         file.append("\t<Sequence ObjectUID=\"9d8a2607-057b-47be-8e25-56261a940524\" ClassID=\"6a15d903-8739-11d5-af2d-9b7855ad8974\" Version=\"11\">\n");
         file.append("\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t<Properties Version=\"1\">\n");
@@ -279,7 +313,13 @@ public class Sequence extends ElementInSequence {
         file.append("\t\t\t\t<AMM.CurrentSolo>[]</AMM.CurrentSolo>\n");
         file.append("\t\t\t\t<HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>[{\"mNumber\":0,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0},{\"mNumber\":-1,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.AudioPatches706bcde2_45_736e_45_6997_45_3385_45_a59f0000001b>\n");
         file.append("\t\t\t\t<HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>[{\"mNumber\":0,\"mState\":0}]</HSL.TimelinePatchingAndTargeting.VideoPatches405230c6_45_7438_45_1002_45_93de_45_aac30000000f>\n");
-        file.append("\t\t\t\t<MZ.EditLine>0</MZ.EditLine>\n");
+
+        // Position curseur dans la séquence.
+        if (position != null) {
+            file.append("\t\t\t\t<MZ.EditLine>" + (position.toImage() * div) + "</MZ.EditLine>\n");
+        } else {
+            file.append("\t\t\t\t<MZ.EditLine>0</MZ.EditLine>\n");
+        }
         file.append("\t\t\t\t<MZ.Sequence.AudioTimeDisplayFormat>200</MZ.Sequence.AudioTimeDisplayFormat>\n");
         file.append("\t\t\t\t<MZ.Sequence.EditingModeGUID>9678af98-a7b7-4bdb-b477-7ac9c8df4a4e</MZ.Sequence.EditingModeGUID>\n");
         file.append("\t\t\t\t<MZ.Sequence.PreviewFrameSizeHeight>1080</MZ.Sequence.PreviewFrameSizeHeight>\n");
@@ -296,23 +336,17 @@ public class Sequence extends ElementInSequence {
             display_format = "100";
         } else if (this.framerate == Framerate.F25) {
             display_format = "101";
+        } else if (this.framerate == Framerate.F23976) {
+            display_format = "102";
+        } else if (this.framerate == Framerate.F2997) {
+            display_format = "102";
         }
 
         file.append("\t\t\t\t<MZ.Sequence.VideoTimeDisplayFormat>" + display_format + "</MZ.Sequence.VideoTimeDisplayFormat>\n");
         file.append("\t\t\t\t<MZ.WorkInPoint>0</MZ.WorkInPoint>\n");
         file.append("\t\t\t\t<MZ.WorkOutPoint>15240960000000</MZ.WorkOutPoint>\n");
 
-        if (this.start_timecode.toImage() != 0) {
-            Timecode tmp = new Timecode(this.start_timecode.toString(), Framerate.F24.getValeur());
-
-            long div = 0;
-
-            if (this.framerate == Framerate.F24) {
-                div = 10584000000L;
-            } else if (this.framerate == Framerate.F25) {
-                div = 10160640000L;
-            }
-
+        if (this.start_timecode != null && this.start_timecode.toImage() != 0) {
             file.append("\t\t\t\t<MZ.ZeroPoint>" + (this.start_timecode.toImage() * div) + "</MZ.ZeroPoint>\n");
         }
 
@@ -327,12 +361,20 @@ public class Sequence extends ElementInSequence {
         file.append("\t\t\t\t<TL.SQVisibleBaseTime>0</TL.SQVisibleBaseTime>\n");
         file.append("\t\t\t</Properties>\n");
         file.append("\t\t</Node>\n");
+
+        int ObjectRef = 100;
+
+        if (!this.liste_marqueur.isEmpty()) {
+            file.append("\t\t<MarkerOwner Version=\"1\">\n");
+            markers_id = ObjectRef++;
+            file.append("\t\t\t<Markers ObjectRef=\"" + markers_id + "\">\n");
+            file.append("\t\t</MarkerOwner>\n");
+        }
+
         file.append("\t\t<PersistentGroupContainer Version=\"1\">\n");
         file.append("\t\t\t<LinkContainer Version=\"1\">\n");
         file.append("\t\t\t</LinkContainer>\n");
         file.append("\t\t</PersistentGroupContainer>\n");
-
-        int ObjectRef = 100;
 
         file.append("\t\t<TrackGroups Version=\"1\">\n");
         file.append("\t\t\t<TrackGroup Version=\"1\" Index=\"0\">\n");
@@ -361,24 +403,36 @@ public class Sequence extends ElementInSequence {
     }
 
     /**
+     * Définit le timecode début de la séquence.
      *
-     * @param start_timecode
+     * @param start_timecode Timecode début.
      */
     public void setStartTimecode(Timecode start_timecode) {
         this.start_timecode = start_timecode;
     }
 
     /**
+     * Définit le framerate de la séquence.
      *
-     * @param framerate
+     * @param framerate Le framerate.
      */
     public void setFramerate(Framerate framerate) {
         this.framerate = framerate;
     }
 
     /**
+     * Définit la position du curseur dans la séquence.
      *
-     * @param resolution
+     * @param timecode En timecode où on est dans la séquence.
+     */
+    public void setPosition(Timecode timecode) {
+        this.position = position;
+    }
+
+    /**
+     * Définit la résolution de la séquence.
+     *
+     * @param resolution La résolution.
      */
     public void setResolution(ResolutionStandard resolution) {
         this.largeur = resolution.getLargeur();
@@ -386,9 +440,10 @@ public class Sequence extends ElementInSequence {
     }
 
     /**
+     * Définit la résolution de la séquence.
      *
-     * @param largeur
-     * @param hauteur
+     * @param largeur Largeur en pixel.
+     * @param hauteur Hauteur en pixel.
      */
     public void setResolution(int largeur, int hauteur) {
         this.largeur = largeur;
@@ -433,7 +488,13 @@ public class Sequence extends ElementInSequence {
         file.append("\t	<ImmersiveVideoVRConfiguration>{\"capturedHorizontalView\":0,\"capturedVerticalView\":0,\"fieldOfHorizontalView\":90,\"fieldOfVerticalView\":60,\"projectionType\":0,\"stereoscopicEye\":0,\"stereoscopicType\":0,\"version\":2}</ImmersiveVideoVRConfiguration>\n");
         file.append("\t</VideoTrackGroup>\n");
 
-        //if (this.liste_clip.size() > 0) {
+        if (!this.liste_marqueur.isEmpty()) {
+            for (MarkerInSequence marqueur : this.liste_marqueur) {
+                marqueur.toXML(file);
+            }
+        }
+
+        //if (!this.liste_clip.isEmpty()) {
         file.append("\t<VideoStream ObjectID=\"" + (ObjectID++) + "\" ClassID=\"a36e4719-3ec6-4a0c-ab11-8b4aab377aa5\" Version=\"15\">\n");
         file.append("\t	<IsStill>true</IsStill>\n");
         file.append("\t	<FrameRate>10584000000</FrameRate>\n");
@@ -444,10 +505,28 @@ public class Sequence extends ElementInSequence {
         file.append("\t</VideoStream>\n");
         //}
 
+        if (!this.liste_marqueur.isEmpty()) {
+            file.append("\t<Markers ObjectID=\"" + markers_id + "\" ClassID=\"bee50706-b524-416c-9f03-b596ce5f6866\" Version=\"3\">\n");
+            file.append("\t\t<Markers Version=\"1\">\n");
+            file.append("\t\t\t<Marker Version=\"1\" Index=\"0\">\n");
+            file.append("\t\t\t\t<First>71550971-39c2-2ea3-131c-c2a500000024</First>\n");
+            file.append("\t\t\t\t<Second ObjectRef=\"105\"/>\n");
+            file.append("\t\t\t</Marker>\n");
+            file.append("\t\t\t<Marker Version=\"1\" Index=\"1\">\n");
+            file.append("\t\t\t\t<First>d60de2c2-4e47-b0ea-b911-14be00000024</First>\n");
+            file.append("\t\t\t\t<Second ObjectRef=\"106\"/>\n");
+            file.append("\t\t\t</Marker>\n");
+            file.append("\t\t</Markers>\n");
+            file.append("\t\t<ByGUID>byGUID</ByGUID>\n");
+            file.append("\t\t<LastMetadataState>00000000-0000-0000-0000-000000000000</LastMetadataState>\n");
+            file.append("\t\t<LastContentState>00000000-0000-0000-0000-000000000000</LastContentState>\n");
+            file.append("\t</Markers>\n");
+        }
+
         file.append("\t<AudioClipTrack ObjectUID=\"4aa95753-fe3b-4c32-a051-414fd49f3f62\" ClassID=\"097f6203-99ae-11d5-84f2-8cf14bde7040\" Version=\"6\">\n");
-        file.append("\t	<ClipTrack Version=\"2\">\n");
-        file.append("\t		<Track Version=\"3\">\n");
-        file.append("\t			<Node Version=\"1\">\n");
+        file.append("\t\t<ClipTrack Version=\"2\">\n");
+        file.append("\t\t\t<Track Version=\"3\">\n");
+        file.append("\t\t\t\t<Node Version=\"1\">\n");
         file.append("\t				<Properties Version=\"1\">\n");
         file.append("\t					<MZ.SourceTrackNumber>0</MZ.SourceTrackNumber>\n");
         file.append("\t					<MZ.SourceTrackState>0</MZ.SourceTrackState>\n");
@@ -472,22 +551,22 @@ public class Sequence extends ElementInSequence {
         file.append("\t		<TransitionItems Version=\"3\">\n");
         file.append("\t			<MediaType>80b8e3d5-6dca-4195-aefb-cb5f407ab009</MediaType>\n");
         file.append("\t			<Index>0</Index>\n");
-        file.append("\t		</TransitionItems>\n");
-        file.append("\t	</ClipTrack>\n");
-        file.append("\t	<AudioTrack Version=\"11\">\n");
-        file.append("\t		<ComponentOwner Version=\"1\">\n");
-        file.append("\t			<Components ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
-        file.append("\t		</ComponentOwner>\n");
-        file.append("\t		<Panner ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
-        file.append("\t		<SubType>1</SubType>\n");
-        file.append("\t		<AutomationMode>1</AutomationMode>\n");
-        file.append("\t		<Assign>1</Assign>\n");
-        file.append("\t		<ChannelType>0</ChannelType>\n");
-        file.append("\t		<FrameRate>5292000</FrameRate>\n");
-        file.append("\t		<NextPannerID>4294967279</NextPannerID>\n");
-        file.append("\t		<Solo>0</Solo>\n");
-        file.append("\t		<MutedBySolo>0</MutedBySolo>\n");
-        file.append("\t		<ID>ec0c64a5-73fe-4a33-beb3-0fe37e1e3cf9</ID>\n");
+        file.append("\t\t\t</TransitionItems>\n");
+        file.append("\t\t</ClipTrack>\n");
+        file.append("\t\t<AudioTrack Version=\"11\">\n");
+        file.append("\t\t\t<ComponentOwner Version=\"1\">\n");
+        file.append("\t\t\t\t<Components ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
+        file.append("\t\t\t</ComponentOwner>\n");
+        file.append("\t\t\t<Panner ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
+        file.append("\t\t\t<SubType>1</SubType>\n");
+        file.append("\t\t\t<AutomationMode>1</AutomationMode>\n");
+        file.append("\t\t\t<Assign>1</Assign>\n");
+        file.append("\t\t\t<ChannelType>0</ChannelType>\n");
+        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        file.append("\t\t\t<NextPannerID>4294967279</NextPannerID>\n");
+        file.append("\t\t\t<Solo>0</Solo>\n");
+        file.append("\t\t\t<MutedBySolo>0</MutedBySolo>\n");
+        file.append("\t\t\t<ID>ec0c64a5-73fe-4a33-beb3-0fe37e1e3cf9</ID>\n");
         file.append("\t	</AudioTrack>\n");
         file.append("\t	<RecordChannel>0</RecordChannel>\n");
         file.append("\t</AudioClipTrack>\n");
@@ -890,7 +969,7 @@ public class Sequence extends ElementInSequence {
      */
     @Override
     public void inSequence(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
@@ -899,7 +978,7 @@ public class Sequence extends ElementInSequence {
      */
     //@Override
     void videoMediaSource(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
@@ -908,6 +987,6 @@ public class Sequence extends ElementInSequence {
      */
     @Override
     void media(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
