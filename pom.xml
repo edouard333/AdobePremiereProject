@@ -4,7 +4,7 @@
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
     <name>AdobePremiereProject</name>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
     <packaging>jar</packaging>
     <url>https://github.com/edouard333/AdobePremiereProject</url>
     
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>timecode</artifactId>
-            <version>0.7.1</version>
+            <version>0.7.3</version>
         </dependency>
     </dependencies>
     
