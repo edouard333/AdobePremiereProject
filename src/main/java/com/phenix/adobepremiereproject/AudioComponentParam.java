@@ -84,5 +84,4 @@ public class AudioComponentParam {
         file.append("\t	<Timestamp>" + this.Timestamp + "</Timestamp>\n");
         file.append("\t</AudioComponentParam>\n");
     }
-
 }

@@ -13,7 +13,7 @@ import java.io.File;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Main {
+public final class Main {
 
     public static void main(String[] args) {
         System.out.println("Helloow");
@@ -59,7 +59,7 @@ public class Main {
             System.out.println("Erreur gén : " + exception.getMessage() + ", " + exception.getClass());
         }
 
-        // --- Elements ---
+        // Elements
         /*Folder elements = new Folder("ELEMENTS", true);
         projet.addElement(elements);
 
@@ -83,7 +83,7 @@ public class Main {
             }
         }
 
-        // --- Exports ---
+        // Exports
         Folder export = new Folder("EXPORTS", true);
         projet.addElement(export);
 
@@ -121,5 +121,4 @@ public class Main {
         }
          */
     }
-
 }

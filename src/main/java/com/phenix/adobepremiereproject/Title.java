@@ -46,7 +46,7 @@ public class Title extends ElementInSequence {
      * @param name
      */
     public Title(Folder parent, String name) {
-        super(parent, name, Sequence.TITLE);
+        super(parent, name, TypeElement.TITLE);
 
         adobeTitle = new AdobeTitle();
 

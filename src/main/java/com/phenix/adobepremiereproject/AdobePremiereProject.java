@@ -1,5 +1,6 @@
 package com.phenix.adobepremiereproject;
 
+import com.phenix.adobepremiereproject.Element.TypeElement;
 import com.phenix.adobepremiereproject.column.BoolPropertyColumn;
 import com.phenix.adobepremiereproject.column.CaptureSettingsColumn;
 import com.phenix.adobepremiereproject.column.Column;
@@ -11,7 +12,7 @@ import com.phenix.adobepremiereproject.column.StringColumn;
 import com.phenix.adobepremiereproject.column.TimecodeColumn;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
 import com.phenix.adobepremiereproject.setting.CompileSettings;
-import com.phenix.adobepremiereproject.util.Utils;
+import com.phenix.compression.ZipFiles;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -102,7 +103,6 @@ public class AdobePremiereProject {
      * @throws AdobePremiereProjectException
      */
     public void close() throws AdobePremiereProjectException {
-
         try {
             // Cloture le fichier temporaire.
             File fichier_tmp = this.getFichierXMLTemporaire();
@@ -116,7 +116,7 @@ public class AdobePremiereProject {
             os.close();
 
             // Prend le fichier XML et le met dans le GZIP.
-            Utils.compressGzipFile(fichier_tmp, fichier);
+            ZipFiles.compressGzipFile(fichier_tmp, fichier);
 
             // Supprime le fichier temporaire.
             fichier_tmp.delete();
@@ -131,17 +131,12 @@ public class AdobePremiereProject {
      * @param file Flux où écrire les données XML.
      */
     private void item(PrintWriter file) {
-
         if (!this.elements.isEmpty()) {
             file.append("\t\t\t<Items Version=\"1\">\n");
 
-            Element element;
-
             int index = 0;
 
-            for (int i = 0; i < this.elements.size(); i++) {
-                element = this.elements.get(i);
-
+            for (Element element : this.elements) {
                 if (element.getLevel() == 0) {
                     file.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
                     index++;
@@ -160,9 +155,9 @@ public class AdobePremiereProject {
      */
     private void binProject(PrintWriter file, int level) {
         int order = 0;
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getLevel() == level) {
-                this.elements.get(i).toXML(file, order);
+        for (Element element : this.elements) {
+            if (element.getLevel() == level) {
+                element.toXML(file, order);
                 order++;
             }
         }
@@ -231,7 +226,6 @@ public class AdobePremiereProject {
      * @param file Flux où il faut écrire.
      */
     private void start(PrintWriter file) throws AdobePremiereProjectException {
-
         String workspace_name = "Montage";
 
         file.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -1393,9 +1387,7 @@ public class AdobePremiereProject {
                 100
         ));
 
-        for (int i = 0; i < liste_column.size(); i++) {
-
-            Column column = liste_column.get(i);
+        for (Column column : liste_column) {
             String nom_classe_column = column.getClass().getName();
 
             if (nom_classe_column.equals(CaptureSettingsColumn.class.getName())) {
@@ -1417,7 +1409,6 @@ public class AdobePremiereProject {
             } else {
                 throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'");
             }
-
         }
 
         file.append("\t\t\t\t</ProjectViewState.List>\n");
@@ -1464,8 +1455,8 @@ public class AdobePremiereProject {
         file.append("\t\t\t<Node Version=\"1\">\n");
         file.append("\t\t\t\t<Properties Version=\"1\">\n");
         file.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
-	file.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
-			
+        file.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
+
         file.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
         file.append("\t\t\t\t</Properties>\n");
         file.append("\t\t\t\t<ID>1000000</ID>\n");
@@ -1512,8 +1503,8 @@ public class AdobePremiereProject {
         liste_compile_settings.add(new CompileSettings(7, 24, 25));
         liste_compile_settings.add(new CompileSettings(8, 26, 27));
 
-        for (int i = 0; i < liste_compile_settings.size(); i++) {
-            liste_compile_settings.get(i).toXML(file);
+        for (CompileSettings compile_setting : liste_compile_settings) {
+            compile_setting.toXML(file);
         }
 
         String same_as_project = "SameAsProject";
@@ -1787,10 +1778,9 @@ public class AdobePremiereProject {
         String classID = "fb11c33a-b0a9-4465-aa94-b6d5db2628cf";
 
         // Ajoute séquence/masterClip ici (de tous level ??????) :
-        for (int i = 0; i < this.elements.size(); i++) {
-
+        for (Element element : this.elements) {
             // Si c'est une séquence.
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
                 file.append("\t<MasterClip ObjectUID=\"" + "ad5bd5cb-4336-473d-a7f2-74386fbfd563" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
                 file.append("\t\t<LoggingInfo ObjectRef=\"40\"/>\n");
                 file.append("\t\t<AudioComponentChains Version=\"1\">\n");
@@ -1801,23 +1791,22 @@ public class AdobePremiereProject {
                 file.append("\t\t\t<Clip Index=\"1\" ObjectRef=\"43\"/>\n");
                 file.append("\t\t</Clips>\n");
                 file.append("\t\t<AudioClipChannelGroups ObjectRef=\"44\"/>\n");
-                file.append("\t\t<Name>" + this.elements.get(i).getName() + "</Name>\n");
+                file.append("\t\t<Name>" + element.getName() + "</Name>\n");
                 file.append("\t</MasterClip>\n");
             }
         }
 
         // Ajout titre/masterClip ici (de tous level ????) :
-        for (int i = 0; i < this.elements.size(); i++) {
-
+        for (Element element : this.elements) {
             // Si c'est une séquence.
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
                 file.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
                 file.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
                 file.append("\t\t<Clips Version=\"1\">\n");
                 file.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
                 file.append("\t\t</Clips>\n");
                 file.append("\t\t<AudioClipChannelGroups ObjectRef=\"47\"/>\n");
-                file.append("\t\t<Name>" + this.elements.get(i).getName() + "</Name>\n");
+                file.append("\t\t<Name>" + element.getName() + "</Name>\n");
                 file.append("\t</MasterClip>\n");
             }
         }
@@ -1898,69 +1887,69 @@ public class AdobePremiereProject {
         this.binProject(file, 2);
 
         // Clip
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
-                ((Sequence) this.elements.get(i)).clip(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
+                ((Sequence) element).clip(file);
             }
         }
 
         // Ajout des ClipLoggingInfo.
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                ((Title) this.elements.get(i)).clipLoggingInfo(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
+                ((Title) element).clipLoggingInfo(file);
             }
         }
 
         // AudioSequenceSource
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
-                ((Sequence) this.elements.get(i)).audioSequenceSource(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
+                ((Sequence) element).audioSequenceSource(file);
             }
         }
 
         // VideoMediaSource
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                ((Title) this.elements.get(i)).videoMediaSource(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
+                ((Title) element).videoMediaSource(file);
             }
         }
 
         // Sequence
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
-                ((Sequence) this.elements.get(i)).sequence(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
+                ((Sequence) element).sequence(file);
             }
         }
 
         // Ajout des médias.
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                ((Title) this.elements.get(i)).media(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
+                ((Title) element).media(file);
             }
         }
 
-        for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
-                ((Sequence) this.elements.get(i)).audioTrackGroup(file);
+        for (Element element : this.elements) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
+                ((Sequence) element).audioTrackGroup(file);
             }
         }
 
         // VideoMediaSource
-        /*for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                ((Title) this.elements.get(i)).videoMediaSource(file);
+        /*for (Element element: this.elements) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
+                ((Title) element).videoMediaSource(file);
             }
         }*/
         // clipLogginInfo.
-        /*for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.TITLE) {
-                ((Title) this.elements.get(i)).clipLogginInfo(file);
+        /*for (Element element: this.elements) {
+            if (element.getTypeElement() == TypeElement.TITLE) {
+                ((Title) element).clipLogginInfo(file);
             }
         }*/
 
- /*for (int i = 0; i < this.elements.size(); i++) {
-            if (this.elements.get(i).getTypeElement() == Element.SEQUENCE) {
-                ((Sequence) this.elements.get(i)).videoClip(file);
+ /*for (Element element: this.elements) {
+            if (element.getTypeElement() == TypeElement.SEQUENCE) {
+                ((Sequence) element).videoClip(file);
             }
         }*/
         file.append("</PremiereData>\n");
@@ -1993,10 +1982,9 @@ public class AdobePremiereProject {
      * @throws TransformerConfigurationException
      */
     public void downgrade(String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
-
         File fichier_tmp = this.getFichierXMLTemporaire();
 
-        Utils.decompressGzipFile(fichier, fichier_tmp);
+        ZipFiles.decompressGzipFile(fichier, fichier_tmp);
 
         Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
 
@@ -2007,7 +1995,6 @@ public class AdobePremiereProject {
             //System.out.println("Node : " + list.item(i).getNodeName());
 
             if (list.item(i).getNodeType() == Node.ELEMENT_NODE && list.item(i).getNodeName().equals("Project")) {
-
                 org.w3c.dom.Element balise_project = (org.w3c.dom.Element) list.item(i);
 
                 String attribute_version = balise_project.getAttribute("Version");
@@ -2036,7 +2023,7 @@ public class AdobePremiereProject {
         StreamResult consoleResult = new StreamResult(System.out);
         transformer.transform(source, consoleResult);
 
-        Utils.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
+        ZipFiles.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
 
         // On supprime les fichiers temporaires.
         fichier_tmp.delete();

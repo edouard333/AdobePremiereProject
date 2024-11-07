@@ -84,7 +84,6 @@ class TextDescription {
                     }
                 }
             }
-
         }
 
         /*<TextDescription Reference="4096">

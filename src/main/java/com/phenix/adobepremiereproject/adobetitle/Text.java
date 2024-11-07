@@ -100,18 +100,14 @@ public class Text {
         NodeList text_chain = this.node.getChildNodes();
 
         for (int i = 0; i < text_chain.getLength(); i++) {
-
             if (text_chain.item(i).getNodeName().equals("TextLine")) {
-
                 NodeList text_line = text_chain.item(i).getChildNodes();
 
                 for (int j = 0; j < text_line.getLength(); j++) {
                     if (text_line.item(j).getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
-
                         NodeList character_attributes = text_line.item(j).getChildNodes();
 
                         for (int k = 0; k < character_attributes.getLength(); k++) {
-
                             if (character_attributes.item(k).getNodeName().equals("CharacterAttributes")) {
                                 Node attribute = character_attributes.item(k);
 
@@ -126,13 +122,10 @@ public class Text {
                                     }
                                 }
                             }
-
                         }
                     }
                 }
-
             }
-
         }
 
         this.needTextDescription = (textDescription != null);
@@ -253,11 +246,9 @@ public class Text {
                 System.out.println(">>>" + text_chain.item(i).getTextContent());
 
                 for (int j = 0; j < text_chain.getLength(); j++) {
-
                     System.out.println(">>>" + text_chain.item(j).getNodeName());
 
                     if (text_chain.item(j).getNodeName().equals("TextLine")) {
-
                         NodeList text_line = text_chain.item(j).getChildNodes();
 
                         for (int k = 0; k < text_line.getLength(); k++) {

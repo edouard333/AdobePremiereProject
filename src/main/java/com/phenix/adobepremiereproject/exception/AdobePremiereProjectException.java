@@ -21,5 +21,4 @@ public class AdobePremiereProjectException extends Exception {
     public AdobePremiereProjectException(String message) {
         super(message);
     }
-
 }

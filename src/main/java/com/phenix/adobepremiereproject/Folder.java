@@ -57,7 +57,7 @@ public class Folder extends Element {
      * @param expanded
      */
     public Folder(Folder parent, String name, boolean expanded) {
-        super(parent, name, Element.FOLDER);
+        super(parent, name, TypeElement.FOLDER);
 
         // Initialise les liens.
         this.sub_ObjectURef = new ArrayList<String>();

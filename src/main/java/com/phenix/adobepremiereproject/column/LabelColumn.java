@@ -30,5 +30,4 @@ public class LabelColumn extends Column {
     public void toXML(PrintWriter file) {
         super.toXML(file);
     }
-
 }

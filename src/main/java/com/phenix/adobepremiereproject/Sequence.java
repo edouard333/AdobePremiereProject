@@ -78,7 +78,7 @@ public class Sequence extends ElementInSequence {
      * @param name Nom de la séquence.
      */
     public Sequence(Folder parent, String name) {
-        super(parent, name, Element.SEQUENCE);
+        super(parent, name, TypeElement.SEQUENCE);
 
         // Initialise la liste des clips dans la séquence.
         this.liste_clip = new ArrayList<ElementInSequence>();
@@ -244,7 +244,6 @@ public class Sequence extends ElementInSequence {
         file.append("\t		<ClipChannelVectorItem Index=\"0\" ObjectRef=\"" + (ObjectRef++) + "\"/>\n");
         file.append("\t	</ClipChannelVectors>\n");
         file.append("\t</ClipChannelGroupVectorSerializer>\n");
-
     }
 
     /**
@@ -252,7 +251,6 @@ public class Sequence extends ElementInSequence {
      * @param file
      */
     public void audioSequenceSource(PrintWriter file) {
-
         int ObjectID = 48;
         int ObjectRef = ObjectID;
 
@@ -299,10 +297,11 @@ public class Sequence extends ElementInSequence {
     public void sequence(PrintWriter file) {
         long div = 0;
 
-        if (this.framerate == Framerate.F24) {
-            div = 10584000000L;
-        } else if (this.framerate == Framerate.F25) {
-            div = 10160640000L;
+        switch (this.framerate) {
+            case F24 ->
+                div = 10584000000L;
+            case F25 ->
+                div = 10160640000L;
         }
 
         file.append("\t<Sequence ObjectUID=\"9d8a2607-057b-47be-8e25-56261a940524\" ClassID=\"6a15d903-8739-11d5-af2d-9b7855ad8974\" Version=\"11\">\n");
@@ -332,14 +331,15 @@ public class Sequence extends ElementInSequence {
 
         String display_format = null;
 
-        if (this.framerate == Framerate.F24) {
-            display_format = "100";
-        } else if (this.framerate == Framerate.F25) {
-            display_format = "101";
-        } else if (this.framerate == Framerate.F23976) {
-            display_format = "102";
-        } else if (this.framerate == Framerate.F2997) {
-            display_format = "102";
+        switch (this.framerate) {
+            case F24 ->
+                display_format = "100";
+            case F25 ->
+                display_format = "101";
+            case F23976 ->
+                display_format = "102";
+            case F2997 ->
+                display_format = "102";
         }
 
         file.append("\t\t\t\t<MZ.Sequence.VideoTimeDisplayFormat>" + display_format + "</MZ.Sequence.VideoTimeDisplayFormat>\n");
@@ -958,8 +958,8 @@ public class Sequence extends ElementInSequence {
         audioComponentParams.add(new AudioComponentParam(ObjectID++, "a714635e-a628-4b27-9d59-77eba47dbc1a", 2, "Volume", "dB", 2, 358326031664600L));
         audioComponentParams.add(new AudioComponentParam(ObjectID++, "32657501-3aa4-445f-a49b-d09ecb9fa1ae", 0, "Silence", "", 4, 358326031675600L));
 
-        for (int i = 0; i < audioComponentParams.size(); i++) {
-            audioComponentParams.get(i).toXML(file);
+        for (AudioComponentParam audio_component_param : audioComponentParams) {
+            audio_component_param.toXML(file);
         }
     }
 

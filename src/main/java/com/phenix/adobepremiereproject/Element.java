@@ -8,24 +8,28 @@ package com.phenix.adobepremiereproject;
 abstract class Element implements AdobeXML {
 
     /**
-     *
+     * Liste des types d'élément.
      */
-    public static final int FOLDER = 1;
+    public enum TypeElement {
+
+        /**
+         *
+         */
+        FOLDER,
+        /**
+         *
+         */
+        SEQUENCE,
+        /**
+         *
+         */
+        TITLE;
+    }
 
     /**
      *
      */
-    public static final int SEQUENCE = 2;
-
-    /**
-     *
-     */
-    public static final int TITLE = 3;
-
-    /**
-     *
-     */
-    private final int type_element;
+    private final TypeElement type_element;
 
     /**
      * Utilisé pour savoir quel UID on donne au dossier.
@@ -111,7 +115,7 @@ abstract class Element implements AdobeXML {
      * @param name
      * @param type_element
      */
-    public Element(Folder parent, String name, int type_element) {
+    public Element(Folder parent, String name, TypeElement type_element) {
         this.name = name;
 
         // Définit le class ID.
@@ -171,7 +175,7 @@ abstract class Element implements AdobeXML {
     }
 
     /**
-     * Niveau dans la hiérarchie des dossiers (0 == root, 1 = sub-folder, ...).
+     * Niveau dans la hiérarchie des dossiers (0 = root, 1 = sub-folder, ...).
      *
      * @return Niveau du dossier.
      */
@@ -197,7 +201,7 @@ abstract class Element implements AdobeXML {
         return this.classID;
     }
 
-    public int getTypeElement() {
+    public TypeElement getTypeElement() {
         return this.type_element;
     }
 

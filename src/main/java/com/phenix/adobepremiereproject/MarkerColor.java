@@ -11,7 +11,7 @@ public enum MarkerColor {
     /**
      * Valeur de la couleur.
      */
-    private long value;
+    private final long value;
 
     /**
      * Définit une couleur de marqueur.
@@ -28,14 +28,13 @@ public enum MarkerColor {
      * @param value Valeur de la couleur.
      * @return Le marqueur.
      */
-    public static MarkerColor from(long value) {
-        MarkerColor[] liste = values();
-
-        for (MarkerColor marqueur : liste) {
+    public static MarkerColor fromValue(long value) {
+        for (MarkerColor marqueur : values()) {
             if (marqueur.value == value) {
                 return marqueur;
             }
         }
+
         return null;
     }
 

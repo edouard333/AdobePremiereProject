@@ -70,22 +70,25 @@ public enum Version {
      * Version CC2024 d'Adobe Premiere Pro (version X.X).
      */
     CC2024("42");
+
     /**
      * Numéro de version.
      */
     private final String valeur;
 
     /**
+     * Définit la valeur.
      *
-     * @param valeur
+     * @param valeur La valeur.
      */
     private Version(String valeur) {
         this.valeur = valeur;
     }
 
     /**
+     * Retourne le numéro de version.
      *
-     * @return
+     * @return Numéro de version.
      */
     @Override
     public String toString() {

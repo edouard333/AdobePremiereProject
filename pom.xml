@@ -4,7 +4,7 @@
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
     <name>AdobePremiereProject</name>
-    <version>0.3.2</version>
+    <version>0.3.3</version>
     <packaging>jar</packaging>
     <url>https://github.com/edouard333/AdobePremiereProject</url>
     
@@ -16,35 +16,36 @@
     </developers>
     
     <build>
-        <!-- Nom du JAR par défaut. -->
-        <finalName>${project.name}-${project.version}</finalName>
-        
         <plugins>
-            <!-- Permet d'ajouter les JAR externe au JAR créé. -->
+            <!-- Ajoute le code source dans Maven. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.7.1</version>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
                 <executions>
                     <execution>
-                        <id>jar-with-dependencies</id>
-                        <phase>package</phase>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>${project.groupId}.${project.artifactId}.Main</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <appendAssemblyId>false</appendAssemblyId>
-                </configuration>
+            </plugin>
+        
+            <!-- Ajoute la JavaDoc dans Maven. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadoc</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -52,8 +53,18 @@
     <dependencies>
         <dependency>
             <groupId>com.phenix</groupId>
+            <artifactId>codec</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.phenix</groupId>
+            <artifactId>compression</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.phenix</groupId>
             <artifactId>timecode</artifactId>
-            <version>0.7.3</version>
+            <version>0.7.5</version>
         </dependency>
     </dependencies>
     
@@ -61,5 +72,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <!-- Type d'application : "graphic", "console" ou "library". -->
+        <appType>library</appType>
     </properties>
 </project>

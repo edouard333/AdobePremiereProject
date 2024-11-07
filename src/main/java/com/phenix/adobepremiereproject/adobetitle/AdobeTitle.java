@@ -1,6 +1,6 @@
 package com.phenix.adobepremiereproject.adobetitle;
 
-import com.phenix.adobepremiereproject.util.Base64;
+import com.phenix.codec.Base64;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -78,7 +78,6 @@ public class AdobeTitle {
 
         // Ce qui est dans Adobe_Root :
         for (int i = 0; i < list.getLength(); i++) {
-
             // Ce qui nous intéresse "InscriberLayouts" :
             if (list.item(i).getNodeName().equals("InscriberLayouts")) {
                 System.out.println(i + " : " + list.item(i).getNodeName());
@@ -86,16 +85,13 @@ public class AdobeTitle {
                 NodeList inscriber = list.item(i).getChildNodes();
 
                 for (int j = 0; j < inscriber.getLength(); j++) {
-
                     if (inscriber.item(j).getNodeName().equals("Layout")) {
                         System.out.println(" * " + j + " : " + inscriber.item(j).getNodeName());
 
                         NodeList layout = inscriber.item(j).getChildNodes();
                         for (int k = 0; k < layout.getLength(); k++) {
-
                             // Les fonts/cara lié au texte :
                             if (layout.item(k).getNodeName().equals("TextDescriptions")) {
-
                                 System.out.println(" * * " + k + " : " + layout.item(k).getNodeName());
 
                                 NodeList text_descriptions = layout.item(k).getChildNodes();
@@ -112,13 +108,11 @@ public class AdobeTitle {
 
                                 NodeList layers = layout.item(k).getChildNodes();
                                 for (int l = 0; l < layers.getLength(); l++) {
-
                                     if (layers.item(l).getNodeName().equals("Layer")) {
                                         System.out.println(" * * * " + l + " : " + layers.item(l).getNodeName());
 
                                         NodeList layer = layers.item(l).getChildNodes();
                                         for (int m = 0; m < layer.getLength(); m++) {
-
                                             if (layer.item(m).getNodeName().equals("TextPage")) {
                                                 System.out.println(" * * * * " + m + " : " + layer.item(m).getNodeName());
 
@@ -136,18 +130,13 @@ public class AdobeTitle {
                                                     //System.out.println("Size y : " + tc.getSizeY());
                                                     //System.out.println("Text : " + tc.getText());
                                                 }
-
                                             }
                                         }
-
                                     }
-
                                 }
                             }
-
                         }
                     }
-
                 }
             }
         }
@@ -174,7 +163,7 @@ public class AdobeTitle {
      */
     public String toXML() throws DataFormatException, UnsupportedEncodingException {
         // Prend les données décodées et les recompresse.
-        byte[] data = compress(this.data_decode); // TODO : on doit faire data_decode un XML à partir des données de ArrayList<Text>... :'(
+        byte[] data = compress(this.data_decode); // TODO : On doit faire data_decode un XML à partir des données de ArrayList<Text>... :'(
 
         // Puis réapplique la Base 64.
         return Base64.encodeBytes(data, Base64.DONT_BREAK_LINES);
@@ -194,7 +183,6 @@ public class AdobeTitle {
      * @throws DataFormatException
      */
     private String decompress(byte[] compressed) throws DataFormatException {
-
         byte[] slice = Arrays.copyOfRange(compressed, 0, 32);
 
         this.header = slice;
