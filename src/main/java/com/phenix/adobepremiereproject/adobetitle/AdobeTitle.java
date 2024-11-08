@@ -25,7 +25,7 @@ import org.xml.sax.SAXException;
 public class AdobeTitle {
 
     /**
-     * 
+     *
      */
     private static int id = 0;
 
@@ -35,7 +35,7 @@ public class AdobeTitle {
     private String data_decode;
 
     /**
-     * 
+     *
      */
     public ArrayList<Text> texts;
 
@@ -157,7 +157,7 @@ public class AdobeTitle {
      * Retourne les données pour être ajouté à l'XML de sortie.
      *
      * @return
-     * 
+     *
      * @throws DataFormatException
      * @throws UnsupportedEncodingException
      */
@@ -170,7 +170,7 @@ public class AdobeTitle {
     }
 
     /**
-     * 
+     *
      */
     private byte[] header;
 
@@ -215,7 +215,7 @@ public class AdobeTitle {
      *
      * @return Données compressées.
      */
-    private byte[] compress(String decompressed){
+    private byte[] compress(String decompressed) {
         byte[] input = decompressed.getBytes();
 
         ByteArrayOutputStream xmlout = new ByteArrayOutputStream(10000);

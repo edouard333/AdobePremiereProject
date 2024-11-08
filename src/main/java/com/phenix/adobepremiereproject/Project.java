@@ -7,7 +7,7 @@ package com.phenix.adobepremiereproject;
 public final class Project {
 
     /**
-     * 
+     *
      */
     public static final String ClassID = "62ad66dd-0dcd-42da-a660-6d8fbde94876";
 }

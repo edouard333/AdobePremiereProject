@@ -7,7 +7,7 @@ package com.phenix.adobepremiereproject;
 public final class ColumnList {
 
     /**
-     * 
+     *
      */
     public static final String ClassID = "a1c709cd-35df-4821-8200-03565d374155";
 }

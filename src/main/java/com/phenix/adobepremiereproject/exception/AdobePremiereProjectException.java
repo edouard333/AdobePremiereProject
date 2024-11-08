@@ -8,7 +8,7 @@ package com.phenix.adobepremiereproject.exception;
 public class AdobePremiereProjectException extends Exception {
 
     /**
-     * 
+     *
      */
     public AdobePremiereProjectException() {
     }

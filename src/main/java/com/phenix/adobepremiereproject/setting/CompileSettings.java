@@ -9,25 +9,25 @@ import java.io.PrintWriter;
 public class CompileSettings {
 
     /**
-     * 
+     *
      */
     private final int ObjectID;
 
     /**
-     * 
+     *
      */
     private final int VideoCompileSettings_ObjectRef;
 
     /**
-     * 
+     *
      */
     private final int AudioCompileSettings_ObjectRef;
 
     /**
-     * 
+     *
      * @param ObjectID
      * @param VideoCompileSettings_ObjectRef
-     * @param AudioCompileSettings_ObjectRef 
+     * @param AudioCompileSettings_ObjectRef
      */
     public CompileSettings(int ObjectID, int VideoCompileSettings_ObjectRef, int AudioCompileSettings_ObjectRef) {
         this.ObjectID = ObjectID;
@@ -36,8 +36,8 @@ public class CompileSettings {
     }
 
     /**
-     * 
-     * @param file 
+     *
+     * @param file
      */
     public void toXML(PrintWriter file) {
         file.append("\t<CompileSettings ObjectID=\"" + ObjectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");

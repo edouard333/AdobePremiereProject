@@ -17,7 +17,7 @@ class TextDescription {
     private Node node;
 
     /**
-     * 
+     *
      */
     private int reference;
 
@@ -32,12 +32,12 @@ class TextDescription {
     private boolean italic;
 
     /**
-     * 
+     *
      */
     private String font;
 
     /**
-     * 
+     *
      */
     private String style_font;
 
@@ -142,32 +142,32 @@ class TextDescription {
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public int getReference() {
         return this.reference;
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public String getFont() {
         return this.font;
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean isItalic() {
         return this.italic;
     }
 
     /**
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean isBold() {
         return this.bold;
