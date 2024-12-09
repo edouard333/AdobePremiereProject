@@ -67,7 +67,7 @@ public enum Version {
      */
     CC2023(null),
     /**
-     * Version CC2024 d'Adobe Premiere Pro (version X.X).
+     * Version CC2024 d'Adobe Premiere Pro (version 24.X).
      */
     CC2024("42");
 
