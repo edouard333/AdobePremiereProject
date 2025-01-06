@@ -4,7 +4,7 @@
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
     <name>AdobePremiereProject</name>
-    <version>0.3.3</version>
+    <version>0.3.4</version>
     <packaging>jar</packaging>
     <url>https://github.com/edouard333/AdobePremiereProject</url>
     
@@ -37,7 +37,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.1</version>
+                <version>3.11.2</version>
                 <executions>
                     <execution>
                         <id>attach-javadoc</id>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>timecode</artifactId>
-            <version>0.7.5</version>
+            <version>0.8.0</version>
         </dependency>
     </dependencies>
     
