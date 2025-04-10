@@ -3,15 +3,18 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
-    <name>AdobePremiereProject</name>
-    <version>0.3.4</version>
+    <version>0.3.5</version>
     <packaging>jar</packaging>
+    
+    <name>AdobePremiereProject</name>
+    <description>Librairie qui génère des projets Adobe Premiere Pro.</description>
     <url>https://github.com/edouard333/AdobePremiereProject</url>
     
     <developers>
         <developer>
             <name>Edouard Jeanjean</name>
             <email>edouard128@hotmail.com</email>
+            <url>https://github.com/edouard333</url>
         </developer>
     </developers>
     
@@ -47,6 +50,40 @@
                     </execution>
                 </executions>
             </plugin>
+            
+            <!-- Génère des checksums. -->
+            <plugin>
+                <groupId>net.nicoulaj.maven.plugins</groupId>
+                <artifactId>checksum-maven-plugin</artifactId>
+                <version>1.11</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>files</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <!-- Inclure les fichiers de build Maven. -->
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>*-${project.version}.jar</include>
+                                        <include>*-${project.version}-sources.jar</include>
+                                        <include>*-${project.version}-javadoc.jar</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <csvSummaryFile>checksums-${project.version}.csv</csvSummaryFile>
+                            <!-- L'algorithme de hash. -->
+                            <algorithms>
+                                <algorithm>SHA-1</algorithm>
+                                <algorithm>MD5</algorithm>
+                            </algorithms>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     
@@ -54,17 +91,23 @@
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>codec</artifactId>
-            <version>0.3.0</version>
+            <version>0.3.1</version>
         </dependency>
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>compression</artifactId>
-            <version>0.3.0</version>
+            <version>0.3.1</version>
         </dependency>
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>timecode</artifactId>
-            <version>0.8.0</version>
+            <version>0.8.1</version>
+        </dependency>
+        <!-- Ajout des annotations @NotNull, etc. -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.1.1</version>
         </dependency>
     </dependencies>
     

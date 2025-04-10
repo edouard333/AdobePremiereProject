@@ -12,7 +12,9 @@ import org.w3c.dom.NodeList;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Text {
+public final class Text {
+
+    private static final String DOSSIER_TMP = "C:\\TMP";
 
     /**
      * Le node du TextChain.
@@ -34,8 +36,8 @@ public class Text {
      */
     public Text() {
         try {
-            this.node = (Node) DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_chain.xml"));
-            this.textDescription = new TextDescription(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File("C:\\TMP\\text_description.xml")));
+            this.node = (Node) DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(DOSSIER_TMP + File.separator + "text_chain.xml"));
+            this.textDescription = new TextDescription(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(DOSSIER_TMP + File.separator + "text_description.xml")));
         } catch (Exception exception) {
             exception.printStackTrace();
         }

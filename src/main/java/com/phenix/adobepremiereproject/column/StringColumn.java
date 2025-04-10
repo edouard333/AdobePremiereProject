@@ -6,7 +6,7 @@ import java.io.PrintWriter;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class StringColumn extends Column {
+public final class StringColumn extends Column {
 
     /**
      *

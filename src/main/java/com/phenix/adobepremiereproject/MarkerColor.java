@@ -1,5 +1,7 @@
 package com.phenix.adobepremiereproject;
 
+import jakarta.validation.constraints.Null;
+
 /**
  * Couleur que peut prendre un marqueur.
  *
@@ -28,6 +30,7 @@ public enum MarkerColor {
      * @param value Valeur de la couleur.
      * @return Le marqueur.
      */
+    @Null
     public static MarkerColor fromValue(long value) {
         for (MarkerColor marqueur : values()) {
             if (marqueur.value == value) {

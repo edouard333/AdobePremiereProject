@@ -8,7 +8,7 @@ import java.util.ArrayList;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Folder extends Element {
+public final class Folder extends Element {
 
     /**
      * Les liens qu'il a avec des enfants.

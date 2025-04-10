@@ -5,7 +5,7 @@ package com.phenix.adobepremiereproject.adobetitle.font;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class ChicagoFont extends Font {
+public final class ChicagoFont extends Font {
 
     /**
      *

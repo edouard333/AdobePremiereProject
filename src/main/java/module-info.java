@@ -5,6 +5,7 @@ module com.phenix.adobepremiereproject {
     requires com.phenix.codec;
     requires com.phenix.compression;
     requires com.phenix.timecode;
+    requires jakarta.validation;
     requires java.xml;
 
     exports com.phenix.adobepremiereproject;

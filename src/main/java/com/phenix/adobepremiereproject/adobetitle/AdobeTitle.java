@@ -22,12 +22,14 @@ import org.xml.sax.SAXException;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class AdobeTitle {
+public final class AdobeTitle {
 
     /**
      *
      */
     private static int id = 0;
+
+    private static String DOSSIER_TMP = "C:\\TMP";
 
     /**
      * L'XML.
@@ -63,7 +65,7 @@ public class AdobeTitle {
 
         this.data_decode = decompress(decode);
 
-        String path_tmp = "C:\\TMP\\title" + id + ".tmp";
+        String path_tmp = DOSSIER_TMP + File.separator + "title" + id + ".tmp";
 
         PrintWriter file = new PrintWriter(path_tmp);
         file.append(this.data_decode);

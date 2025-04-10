@@ -54,7 +54,7 @@ public final class Main {
 
             sequence.add(titre, new Timecode("00:00:00:00", framerate.getValeur()), new Timecode("00:00:00:00"));
              */
-            projet.close();
+            projet.save();
         } catch (AdobePremiereProjectException exception) {
             System.out.println("Erreur gén : " + exception.getMessage() + ", " + exception.getClass());
         }

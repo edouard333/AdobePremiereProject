@@ -3,6 +3,7 @@ package com.phenix.adobepremiereproject.column;
 import java.io.PrintWriter;
 
 /**
+ * La classe est faite pour être dérivée.
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */

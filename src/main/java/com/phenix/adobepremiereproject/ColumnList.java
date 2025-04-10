@@ -1,5 +1,8 @@
 package com.phenix.adobepremiereproject;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
@@ -9,5 +12,7 @@ public final class ColumnList {
     /**
      *
      */
+    @NotNull
+    @NotBlank
     public static final String ClassID = "a1c709cd-35df-4821-8200-03565d374155";
 }

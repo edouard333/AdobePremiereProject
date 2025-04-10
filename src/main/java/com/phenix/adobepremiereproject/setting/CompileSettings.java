@@ -1,12 +1,13 @@
 package com.phenix.adobepremiereproject.setting;
 
+import jakarta.validation.constraints.NotNull;
 import java.io.PrintWriter;
 
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class CompileSettings {
+public final class CompileSettings {
 
     /**
      *
@@ -39,7 +40,7 @@ public class CompileSettings {
      *
      * @param file
      */
-    public void toXML(PrintWriter file) {
+    public void toXML(@NotNull PrintWriter file) {
         file.append("\t<CompileSettings ObjectID=\"" + ObjectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
         file.append("\t\t<VideoCompileSettings ObjectRef=\"" + this.VideoCompileSettings_ObjectRef + "\"/>\n");
         file.append("\t\t<AudioCompileSettings ObjectRef=\"" + this.AudioCompileSettings_ObjectRef + "\"/>\n");

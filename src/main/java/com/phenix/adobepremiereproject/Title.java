@@ -10,7 +10,7 @@ import java.io.PrintWriter;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Title extends ElementInSequence {
+public final class Title extends ElementInSequence {
 
     /**
      *

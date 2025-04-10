@@ -7,7 +7,7 @@ import java.io.PrintWriter;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class MarkerInSequence {
+public final class MarkerInSequence {
 
     /**
      *

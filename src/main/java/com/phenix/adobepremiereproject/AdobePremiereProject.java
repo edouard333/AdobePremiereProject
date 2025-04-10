@@ -13,6 +13,9 @@ import com.phenix.adobepremiereproject.column.TimecodeColumn;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
 import com.phenix.adobepremiereproject.setting.CompileSettings;
 import com.phenix.compression.ZipFiles;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -40,21 +43,27 @@ import org.xml.sax.SAXException;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class AdobePremiereProject {
+public final class AdobePremiereProject {
 
     /**
      * Extension d'un projet Adobe Premiere.
      */
+    @NotNull
+    @NotBlank
     public static final String EXTENSION = ".prproj";
 
     /**
      * Extension pour les fichiers XML.
      */
+    @NotNull
+    @NotBlank
     public static final String EXTENSION_XML = ".xml";
 
     /**
      * Extension pour les fichiers temporaire.
      */
+    @NotNull
+    @NotBlank
     public static final String EXTENSION_TMP = ".tmp";
 
     /**
@@ -65,6 +74,7 @@ public class AdobePremiereProject {
     /**
      * Les éléments du projet.
      */
+    @NotNull
     private final ArrayList<Element> elements;
 
     /**
@@ -93,6 +103,7 @@ public class AdobePremiereProject {
      *
      * @return Le fichier XML temporaire.
      */
+    @NotNull
     private File getFichierXMLTemporaire() {
         return new File(this.fichier.getAbsolutePath().replace(EXTENSION, EXTENSION_TMP));
     }
@@ -102,7 +113,7 @@ public class AdobePremiereProject {
      *
      * @throws AdobePremiereProjectException
      */
-    public void close() throws AdobePremiereProjectException {
+    public void save() throws AdobePremiereProjectException {
         try {
             // Cloture le fichier temporaire.
             File fichier_tmp = this.getFichierXMLTemporaire();
@@ -130,7 +141,7 @@ public class AdobePremiereProject {
      *
      * @param file Flux où écrire les données XML.
      */
-    private void item(PrintWriter file) {
+    private void item(@NotNull PrintWriter file) {
         if (!this.elements.isEmpty()) {
             file.append("\t\t\t<Items Version=\"1\">\n");
 
@@ -173,7 +184,7 @@ public class AdobePremiereProject {
      * @param LastViewed
      * @param IconViewThumbnailSize
      */
-    private void ProjectViewState(PrintWriter file, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
+    private void ProjectViewState(@NotNull PrintWriter file, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
         file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
         file.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
         file.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
@@ -208,7 +219,7 @@ public class AdobePremiereProject {
      * @param column_index_max
      * @param delta
      */
-    private void ColumnList(PrintWriter file, int ObjectID, int column_index_max, int delta) {
+    private void ColumnList(@NotNull PrintWriter file, int ObjectID, int column_index_max, int delta) {
         file.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
         file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
 
@@ -225,7 +236,7 @@ public class AdobePremiereProject {
      *
      * @param file Flux où il faut écrire.
      */
-    private void start(PrintWriter file) throws AdobePremiereProjectException {
+    private void start(@NotNull PrintWriter file) throws AdobePremiereProjectException {
         String workspace_name = "Montage";
 
         file.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -1471,7 +1482,7 @@ public class AdobePremiereProject {
      *
      * @param file
      */
-    private void end(PrintWriter file) {
+    private void end(@NotNull PrintWriter file) {
         file.append("\t\t</ProjectItemContainer>\n");
         file.append("\t</RootProjectItem>\n");
         file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
@@ -1961,6 +1972,8 @@ public class AdobePremiereProject {
      *
      * @return Liste des versions.
      */
+    @NotNull
+    @NotEmpty
     public String[] getVersions() {
         return new String[]{
             Version.CC2015.toString(),
@@ -1984,7 +1997,7 @@ public class AdobePremiereProject {
     public void downgrade(String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
         File fichier_tmp = this.getFichierXMLTemporaire();
 
-        ZipFiles.decompressGzipFile(fichier, fichier_tmp);
+        ZipFiles.decompressGzipFile(this.fichier, fichier_tmp);
 
         Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
 

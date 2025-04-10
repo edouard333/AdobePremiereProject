@@ -10,7 +10,7 @@ import java.util.ArrayList;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Sequence extends ElementInSequence {
+public final class Sequence extends ElementInSequence {
 
     /**
      *
