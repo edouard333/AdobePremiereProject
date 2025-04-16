@@ -15,6 +15,11 @@ import java.io.File;
  */
 public final class Main {
 
+    /**
+     * Où commence le programme.
+     *
+     * @param args Les valeurs reçues par le programme.
+     */
     public static void main(String[] args) {
         System.out.println("Helloow");
 

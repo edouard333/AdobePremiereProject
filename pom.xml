@@ -20,6 +20,33 @@
     
     <build>
         <plugins>
+            <!-- Fait des vérifications sur le projet. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-files-exist</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- Vérifie que les propriétés existent et ont des valeurs valides. -->
+                                <requireProperty>
+                                    <property>appType</property>
+                                    <message>"appType" doit être défini.</message>
+                                    <regex>^(graphic|console|library)$</regex>
+                                    <regexMessage>La valeur doit être soit "graphic" soit "console" soit "library".</regexMessage>
+                                </requireProperty>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <!-- Ajoute le code source dans Maven. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
