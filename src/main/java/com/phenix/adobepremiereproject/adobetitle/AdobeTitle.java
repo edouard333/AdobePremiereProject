@@ -70,9 +70,9 @@ public final class AdobeTitle {
 
             String path_tmp = DOSSIER_TMP + File.separator + "title" + id + ".tmp";
 
-            PrintWriter file = new PrintWriter(path_tmp);
-            file.append(this.data_decode);
-            file.close();
+            try (PrintWriter writer = new PrintWriter(path_tmp)) {
+                writer.append(this.data_decode);
+            }
 
             Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(path_tmp));
 

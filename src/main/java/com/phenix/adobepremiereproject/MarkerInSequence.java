@@ -31,9 +31,9 @@ public final class MarkerInSequence {
 
     /**
      *
-     * @param file
+     * @param writer
      */
-    public void toXML(PrintWriter file) {
+    public void toXML(PrintWriter writer) {
         file.append("<Marker ObjectID=\"105\" ClassID=\"a45508e0-3ff7-4d04-90a7-2e0dfff4c910\" Version=\"3\">\n");
         file.append("<DVAMarker>{\"DVAMarker\":{");
         file.append("\"mCuePointList\":[");

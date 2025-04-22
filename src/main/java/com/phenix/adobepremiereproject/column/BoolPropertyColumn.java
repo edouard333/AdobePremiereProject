@@ -38,13 +38,13 @@ public final class BoolPropertyColumn extends Column {
 
     /**
      *
-     * @param file
+     * @param writer
      */
     @Override
-    public void toXML(PrintWriter file) {
-        super.toXML(file, (file2) -> {
-            file.append("\t\t\t\t\t\t<Column.Property.Key>" + this.PropertyBool + "</Column.Property.Key>\n");
-            file.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.EditableKey + "</Column.Editable.Key>\n");
+    public void toXML(PrintWriter writer) {
+        super.toXML(writer, (file2) -> {
+            writer.append("\t\t\t\t\t\t<Column.Property.Key>" + this.PropertyBool + "</Column.Property.Key>\n");
+            writer.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.EditableKey + "</Column.Editable.Key>\n");
         });
     }
 }

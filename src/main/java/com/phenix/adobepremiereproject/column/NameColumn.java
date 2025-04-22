@@ -24,10 +24,10 @@ public final class NameColumn extends Column {
 
     /**
      *
-     * @param file
+     * @param writer
      */
     @Override
-    public void toXML(PrintWriter file) {
-        super.toXML(file);
+    public void toXML(PrintWriter writer) {
+        super.toXML(writer);
     }
 }

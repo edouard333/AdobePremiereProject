@@ -12,8 +12,8 @@ public interface AdobeXML {
     /**
      * Génère le XML pour le projet.
      *
-     * @param file Flux où on ajoute les informations.
+     * @param writer Flux où on ajoute les informations.
      * @param order Numéro d'ordre.
      */
-    public void toXML(PrintWriter file, int order);
+    public void toXML(PrintWriter writer, int order);
 }

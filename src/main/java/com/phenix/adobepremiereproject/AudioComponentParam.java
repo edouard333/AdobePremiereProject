@@ -65,23 +65,23 @@ public final class AudioComponentParam {
 
     /**
      *
-     * @param file
+     * @param writer
      */
-    public void toXML(PrintWriter file) {
-        file.append("\t<AudioComponentParam ObjectID=\"" + (this.ObjectID++) + "\" ClassID=\"" + this.ClassID + "\" Version=\"9\">\n");
+    public void toXML(PrintWriter writer) {
+        writer.append("\t<AudioComponentParam ObjectID=\"" + (this.ObjectID++) + "\" ClassID=\"" + this.ClassID + "\" Version=\"9\">\n");
 
         if (this.ClassID.equals("a714635e-a628-4b27-9d59-77eba47dbc1a")) {
-            file.append("\t	<UpperBound>" + this.UpperBound + "</UpperBound>\n");
+            writer.append("\t	<UpperBound>" + this.UpperBound + "</UpperBound>\n");
         }
 
-        file.append("\t	<Name>" + this.Name + "</Name>\n");
+        writer.append("\t	<Name>" + this.Name + "</Name>\n");
 
         if (this.ClassID.equals("a714635e-a628-4b27-9d59-77eba47dbc1a")) {
-            file.append("\t	<UnitsString>" + this.UnitsString + "</UnitsString>\n");
+            writer.append("\t	<UnitsString>" + this.UnitsString + "</UnitsString>\n");
         }
 
-        file.append("\t	<ParameterControlType>" + this.ParameterControlType + "</ParameterControlType>\n");
-        file.append("\t	<Timestamp>" + this.Timestamp + "</Timestamp>\n");
-        file.append("\t</AudioComponentParam>\n");
+        writer.append("\t	<ParameterControlType>" + this.ParameterControlType + "</ParameterControlType>\n");
+        writer.append("\t	<Timestamp>" + this.Timestamp + "</Timestamp>\n");
+        writer.append("\t</AudioComponentParam>\n");
     }
 }

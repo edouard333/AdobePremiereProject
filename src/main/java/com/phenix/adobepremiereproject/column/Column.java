@@ -144,29 +144,29 @@ public class Column {
 
     /**
      *
-     * @param file
+     * @param writer
      */
-    protected void toXML(PrintWriter file) {
-        this.toXML(file, null);
+    protected void toXML(PrintWriter writer) {
+        this.toXML(writer, null);
     }
 
     /**
      *
-     * @param file
+     * @param writer
      * @param properties
      */
-    protected void toXML(PrintWriter file, PropertiesAdd properties) {
-        file.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
-        file.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
-        file.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
-        file.append("\t\t\t\t\t\t<Column.Class>" + this.Class + "</Column.Class>\n");
-        file.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
-        file.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
+    protected void toXML(PrintWriter writer, PropertiesAdd properties) {
+        writer.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
+        writer.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
+        writer.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
+        writer.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
+        writer.append("\t\t\t\t\t\t<Column.Class>" + this.Class + "</Column.Class>\n");
+        writer.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
+        writer.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
 
         if (properties != null) {
             properties.addProperties(file);
         }
-        file.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
+        writer.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
     }
 }

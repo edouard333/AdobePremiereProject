@@ -21,14 +21,14 @@ public abstract class ElementInSequence extends Element {
     /**
      * Code dans la séquence
      *
-     * @param file Flux où écrire les données.
+     * @param writer Flux où écrire les données.
      */
-    abstract void inSequence(PrintWriter file);
+    abstract void inSequence(PrintWriter writer);
 
     /**
      * Données liées à la balise "Media".
      *
-     * @param file
+     * @param writer Flux où écrire les données.
      */
-    abstract void media(PrintWriter file);
+    abstract void media(PrintWriter writer);
 }

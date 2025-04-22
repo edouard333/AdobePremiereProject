@@ -11,7 +11,7 @@ public interface PropertiesAdd {
 
     /**
      *
-     * @param file
+     * @param writer Flux où on écrit les informations.
      */
-    public void addProperties(PrintWriter file);
+    public void addProperties(PrintWriter writer);
 }

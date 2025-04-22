@@ -38,20 +38,20 @@ public final class CompileSettings {
 
     /**
      *
-     * @param file
+     * @param writer
      */
-    public void toXML(@NotNull PrintWriter file) {
-        file.append("\t<CompileSettings ObjectID=\"" + ObjectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"" + this.VideoCompileSettings_ObjectRef + "\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"" + this.AudioCompileSettings_ObjectRef + "\"/>\n");
-        file.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
-        file.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
-        file.append("\t\t<ExportVideo>true</ExportVideo>\n");
-        file.append("\t\t<ExportAudio>true</ExportAudio>\n");
-        file.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
-        file.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
-        file.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
-        file.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
-        file.append("\t</CompileSettings>\n");
+    public void toXML(@NotNull PrintWriter writer) {
+        writer.append("\t<CompileSettings ObjectID=\"" + ObjectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
+        writer.append("\t\t<VideoCompileSettings ObjectRef=\"" + this.VideoCompileSettings_ObjectRef + "\"/>\n");
+        writer.append("\t\t<AudioCompileSettings ObjectRef=\"" + this.AudioCompileSettings_ObjectRef + "\"/>\n");
+        writer.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
+        writer.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
+        writer.append("\t\t<ExportVideo>true</ExportVideo>\n");
+        writer.append("\t\t<ExportAudio>true</ExportAudio>\n");
+        writer.append("\t\t<AddToProjectWhenFinished>true</AddToProjectWhenFinished>\n");
+        writer.append("\t\t<BeepWhenFinished>false</BeepWhenFinished>\n");
+        writer.append("\t\t<ExportWorkAreaOnly>false</ExportWorkAreaOnly>\n");
+        writer.append("\t\t<EmbedProjectLink>false</EmbedProjectLink>\n");
+        writer.append("\t</CompileSettings>\n");
     }
 }

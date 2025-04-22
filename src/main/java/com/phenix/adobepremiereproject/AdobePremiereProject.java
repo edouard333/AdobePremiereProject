@@ -114,24 +114,23 @@ public final class AdobePremiereProject {
      * @throws AdobePremiereProjectException
      */
     public void save() throws AdobePremiereProjectException {
+        // Cloture le fichier temporaire.
+        File fichier_tmp = this.getFichierXMLTemporaire();
+        try (PrintWriter writer = new PrintWriter(fichier_tmp, StandardCharsets.UTF_8)) {
+            this.start(writer);
+            this.item(writer);
+            this.end(writer);
+        } catch (IOException exception) {
+            throw new AdobePremiereProjectException(exception.getMessage(), exception);
+        }
+
         try {
-            // Cloture le fichier temporaire.
-            File fichier_tmp = this.getFichierXMLTemporaire();
-            OutputStream os = new FileOutputStream(fichier_tmp);
-            PrintWriter file = new PrintWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
-
-            this.start(file);
-            this.item(file);
-            this.end(file);
-            file.close();
-            os.close();
-
             // Prend le fichier XML et le met dans le GZIP.
-            ZipFiles.compressGzipFile(fichier_tmp, fichier);
+            ZipFiles.compressGzipFile(fichier_tmp, this.fichier);
 
             // Supprime le fichier temporaire.
             fichier_tmp.delete();
-        } catch (IOException | ZipCustomException exception) {
+        } catch (ZipCustomException exception) {
             throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }
     }
@@ -139,36 +138,36 @@ public final class AdobePremiereProject {
     /**
      * Element à la racine du projet.
      *
-     * @param file Flux où écrire les données XML.
+     * @param writer Flux où écrire les données XML.
      */
-    private void item(@NotNull PrintWriter file) {
+    private void item(@NotNull PrintWriter writer) {
         if (!this.elements.isEmpty()) {
-            file.append("\t\t\t<Items Version=\"1\">\n");
+            writer.append("\t\t\t<Items Version=\"1\">\n");
 
             int index = 0;
 
             for (Element element : this.elements) {
                 if (element.getLevel() == 0) {
-                    file.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
+                    writer.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
                     index++;
                 }
             }
 
-            file.append("\t\t\t</Items>\n");
+            writer.append("\t\t\t</Items>\n");
         }
     }
 
     /**
      * Crée les dossiers.
      *
-     * @param file Flux où il faut écrire.
+     * @param writer Flux où il faut écrire.
      * @param level Niveau de dossier.
      */
-    private void binProject(PrintWriter file, int level) {
+    private void binProject(PrintWriter writer, int level) {
         int order = 0;
         for (Element element : this.elements) {
             if (element.getLevel() == level) {
-                element.toXML(file, order);
+                element.toXML(writer, order);
                 order++;
             }
         }
@@ -176,7 +175,7 @@ public final class AdobePremiereProject {
 
     /**
      *
-     * @param file
+     * @param writer
      * @param ObjectID
      * @param ObjectRef
      * @param ProjectViewStateID
@@ -184,87 +183,87 @@ public final class AdobePremiereProject {
      * @param LastViewed
      * @param IconViewThumbnailSize
      */
-    private void ProjectViewState(@NotNull PrintWriter file, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
-        file.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
-        file.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>" + ProjectViewStateOriginalID + "</ProjectViewState.OriginalID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
-        file.append("\t\t\t\t\t\t<PreviewView.Visible>false</PreviewView.Visible>\n");
-        file.append("\t\t\t\t\t\t<ContentView.LastViewed>" + LastViewed + "</ContentView.LastViewed>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>" + IconViewThumbnailSize + "</IconView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<FreeformView.Scale>1</FreeformView.Scale>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
-        file.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
-        file.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
-        file.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
-        file.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
-        file.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
-        file.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<ColumnListContents.Version>16</ColumnListContents.Version>\n");
-        file.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
-        file.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
-        file.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
-        file.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
-        file.append("\t\t\t\t\t</ProjectViewState>\n");
+    private void ProjectViewState(@NotNull PrintWriter writer, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
+        writer.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
+        writer.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>" + ProjectViewStateOriginalID + "</ProjectViewState.OriginalID>\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
+        writer.append("\t\t\t\t\t\t<PreviewView.Visible>false</PreviewView.Visible>\n");
+        writer.append("\t\t\t\t\t\t<ContentView.LastViewed>" + LastViewed + "</ContentView.LastViewed>\n");
+        writer.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>" + IconViewThumbnailSize + "</IconView.Thumbnail.Size>\n");
+        writer.append("\t\t\t\t\t\t<FreeformView.Scale>1</FreeformView.Scale>\n");
+        writer.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
+        writer.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
+        writer.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
+        writer.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
+        writer.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
+        writer.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
+        writer.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
+        writer.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
+        writer.append("\t\t\t\t\t\t<ColumnListContents.Version>16</ColumnListContents.Version>\n");
+        writer.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
+        writer.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
+        writer.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
+        writer.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
+        writer.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
+        writer.append("\t\t\t\t\t</ProjectViewState>\n");
     }
 
     /**
      *
-     * @param file
+     * @param writer
      * @param ObjectID
      * @param column_index_max
      * @param delta
      */
-    private void ColumnList(@NotNull PrintWriter file, int ObjectID, int column_index_max, int delta) {
-        file.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
+    private void ColumnList(@NotNull PrintWriter writer, int ObjectID, int column_index_max, int delta) {
+        writer.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
+        writer.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
 
         for (int i = 0; i < column_index_max; i++) {
-            file.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + delta) + "\"/>\n");
+            writer.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + delta) + "\"/>\n");
         }
 
-        file.append("\t\t\t\t\t\t</Columns>\n");
-        file.append("\t\t\t\t\t</ColumnList>\n");
+        writer.append("\t\t\t\t\t\t</Columns>\n");
+        writer.append("\t\t\t\t\t</ColumnList>\n");
     }
 
     /**
      * Écrit la structure du projet, le début.
      *
-     * @param file Flux où il faut écrire.
+     * @param writer Flux où il faut écrire.
      */
-    private void start(@NotNull PrintWriter file) throws AdobePremiereProjectException {
+    private void start(@NotNull PrintWriter writer) throws AdobePremiereProjectException {
         String workspace_name = "Montage";
 
-        file.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-        file.append("<PremiereData Version=\"3\">\n");
-        file.append("\t<Project ObjectRef=\"1\"/>\n");
-        file.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
-        file.append("\t\t<Node Version=\"1\">\n");
-        file.append("\t\t\t<Properties Version=\"1\">\n");
-        file.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
-        file.append("\t\t\t\t\t<ProjectViewStates Version=\"1\">\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"0\">\n");
-        file.append("\t\t\t\t\t\t\t<First>361ff028-e258-4162-a70b-ddea24afb013</First>\n");
-        file.append("\t\t\t\t\t\t\t<Second ObjectRef=\"1\"/>\n");
-        file.append("\t\t\t\t\t\t</ProjectViewState>\n");
-        file.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"1\">\n");
-        file.append("\t\t\t\t\t\t\t<First>3625b009-0f43-4db8-8f24-6be33ebbaa5f</First>\n");
-        file.append("\t\t\t\t\t\t\t<Second ObjectRef=\"2\"/>\n");
-        file.append("\t\t\t\t\t\t</ProjectViewState>\n");
-        file.append("\t\t\t\t\t</ProjectViewStates>\n");
+        writer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+        writer.append("<PremiereData Version=\"3\">\n");
+        writer.append("\t<Project ObjectRef=\"1\"/>\n");
+        writer.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
+        writer.append("\t\t<Node Version=\"1\">\n");
+        writer.append("\t\t\t<Properties Version=\"1\">\n");
+        writer.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
+        writer.append("\t\t\t\t\t<ProjectViewStates Version=\"1\">\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"0\">\n");
+        writer.append("\t\t\t\t\t\t\t<First>361ff028-e258-4162-a70b-ddea24afb013</First>\n");
+        writer.append("\t\t\t\t\t\t\t<Second ObjectRef=\"1\"/>\n");
+        writer.append("\t\t\t\t\t\t</ProjectViewState>\n");
+        writer.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"1\">\n");
+        writer.append("\t\t\t\t\t\t\t<First>3625b009-0f43-4db8-8f24-6be33ebbaa5f</First>\n");
+        writer.append("\t\t\t\t\t\t\t<Second ObjectRef=\"2\"/>\n");
+        writer.append("\t\t\t\t\t\t</ProjectViewState>\n");
+        writer.append("\t\t\t\t\t</ProjectViewStates>\n");
 
-        this.ProjectViewState(file, 1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1");
-        this.ProjectViewState(file, 2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200");
+        this.ProjectViewState(writer, 1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1");
+        this.ProjectViewState(writer, 2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200");
 
         int column_index_max_exclu = 56;
         int delta = 5;
 
-        this.ColumnList(file, 3, column_index_max_exclu, delta);
-        this.ColumnList(file, 4, column_index_max_exclu, column_index_max_exclu + delta);
+        this.ColumnList(writer, 3, column_index_max_exclu, delta);
+        this.ColumnList(writer, 4, column_index_max_exclu, column_index_max_exclu + delta);
 
         List<Column> liste_column = new ArrayList<Column>();
 
@@ -1402,109 +1401,109 @@ public final class AdobePremiereProject {
             String nom_classe_column = column.getClass().getName();
 
             if (nom_classe_column.equals(CaptureSettingsColumn.class.getName())) {
-                ((CaptureSettingsColumn) column).toXML(file);
+                ((CaptureSettingsColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(EditTextColumn.class.getName())) {
-                ((EditTextColumn) column).toXML(file);
+                ((EditTextColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(LabelColumn.class.getName())) {
-                ((LabelColumn) column).toXML(file);
+                ((LabelColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(SelectedItemsColumn.class.getName())) {
-                ((SelectedItemsColumn) column).toXML(file);
+                ((SelectedItemsColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(NameColumn.class.getName())) {
-                ((NameColumn) column).toXML(file);
+                ((NameColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(StringColumn.class.getName())) {
-                ((StringColumn) column).toXML(file);
+                ((StringColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(TimecodeColumn.class.getName())) {
-                ((TimecodeColumn) column).toXML(file);
+                ((TimecodeColumn) column).toXML(writer);
             } else if (nom_classe_column.equals(BoolPropertyColumn.class.getName())) {
-                ((BoolPropertyColumn) column).toXML(file);
+                ((BoolPropertyColumn) column).toXML(writer);
             } else {
                 throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'.");
             }
         }
 
-        file.append("\t\t\t\t</ProjectViewState.List>\n");
-        file.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
-        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
-        file.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
-        file.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
+        writer.append("\t\t\t\t</ProjectViewState.List>\n");
+        writer.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
+        writer.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
+        writer.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
+        writer.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
 
         if (Title.getTitleNumber() > 1) {
-            file.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
+            writer.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
         }
 
-        file.append("\t\t\t\t<MZ.BuildVersion.Created>24.0.0x58 - 22-01-24 12:03:57</MZ.BuildVersion.Created>\n");
-        file.append("\t\t\t\t<MZ.BuildVersion.Modified>24.0.0x58 - 22-01-24 12:03:59</MZ.BuildVersion.Modified>\n");
+        writer.append("\t\t\t\t<MZ.BuildVersion.Created>24.0.0x58 - 22-01-24 12:03:57</MZ.BuildVersion.Created>\n");
+        writer.append("\t\t\t\t<MZ.BuildVersion.Modified>24.0.0x58 - 22-01-24 12:03:59</MZ.BuildVersion.Modified>\n");
 
         // S'il y a une séquence dans le projet.
         if (Sequence.getSequenceNumber() > 1) {
-            file.append("\t\t\t\t<MZ.NextSequenceIndex>" + (Sequence.getSequenceNumber()) + "</MZ.NextSequenceIndex>\n");
-            file.append("\t\t\t\t<MZ.PrefixKey.OpenSequenceGuidList.1>9d8a2607-057b-47be-8e25-56261a940524</MZ.PrefixKey.OpenSequenceGuidList.1>\n");
+            writer.append("\t\t\t\t<MZ.NextSequenceIndex>" + (Sequence.getSequenceNumber()) + "</MZ.NextSequenceIndex>\n");
+            writer.append("\t\t\t\t<MZ.PrefixKey.OpenSequenceGuidList.1>9d8a2607-057b-47be-8e25-56261a940524</MZ.PrefixKey.OpenSequenceGuidList.1>\n");
         }
 
-        file.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
-        file.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
-        file.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspace_name + "</MZ.Project.WorkspaceName>\n");
-        file.append("\t\t\t\t<ProjectViewState.Version>2</ProjectViewState.Version>\n");
-        file.append("\t\t\t\t<TL.PJSnappingState>1</TL.PJSnappingState>\n");
-        file.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>/Users/macdevpro/Desktop/Projet-example.prproj</project.settings.lastknowngoodprojectpath>\n");
-        file.append("\t\t\t</Properties>\n");
-        file.append("\t\t</Node>\n");
-        file.append("\t\t<RootProjectItem ObjectURef=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\"/>\n");
-        file.append("\t\t<ProjectSettings ObjectRef=\"3\"/>\n");
-        file.append("\t\t<MovieCompileSettings ObjectRef=\"4\"/>\n");
-        file.append("\t\t<StillCompileSettings ObjectRef=\"5\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"6\"/>\n");
-        file.append("\t\t<CustomCompileSettings ObjectRef=\"7\"/>\n");
-        file.append("\t\t<VideoPreviewCompileSettings ObjectRef=\"8\"/>\n");
-        file.append("\t\t<ScratchDiskSettings ObjectRef=\"9\"/>\n");
-        file.append("\t\t<IngestSettings ObjectRef=\"10\"/>\n");
-        file.append("\t\t<ProjectWorkspace ObjectRef=\"11\"/>\n");
-        file.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
-        file.append("\t</Project>\n");
-        file.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
-        file.append("\t\t<ProjectItem Version=\"1\">\n");
-        file.append("\t\t\t<Node Version=\"1\">\n");
-        file.append("\t\t\t\t<Properties Version=\"1\">\n");
-        file.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
-        file.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
+        writer.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
+        writer.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
+        writer.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspace_name + "</MZ.Project.WorkspaceName>\n");
+        writer.append("\t\t\t\t<ProjectViewState.Version>2</ProjectViewState.Version>\n");
+        writer.append("\t\t\t\t<TL.PJSnappingState>1</TL.PJSnappingState>\n");
+        writer.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>/Users/macdevpro/Desktop/Projet-example.prproj</project.settings.lastknowngoodprojectpath>\n");
+        writer.append("\t\t\t</Properties>\n");
+        writer.append("\t\t</Node>\n");
+        writer.append("\t\t<RootProjectItem ObjectURef=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\"/>\n");
+        writer.append("\t\t<ProjectSettings ObjectRef=\"3\"/>\n");
+        writer.append("\t\t<MovieCompileSettings ObjectRef=\"4\"/>\n");
+        writer.append("\t\t<StillCompileSettings ObjectRef=\"5\"/>\n");
+        writer.append("\t\t<AudioCompileSettings ObjectRef=\"6\"/>\n");
+        writer.append("\t\t<CustomCompileSettings ObjectRef=\"7\"/>\n");
+        writer.append("\t\t<VideoPreviewCompileSettings ObjectRef=\"8\"/>\n");
+        writer.append("\t\t<ScratchDiskSettings ObjectRef=\"9\"/>\n");
+        writer.append("\t\t<IngestSettings ObjectRef=\"10\"/>\n");
+        writer.append("\t\t<ProjectWorkspace ObjectRef=\"11\"/>\n");
+        writer.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
+        writer.append("\t</Project>\n");
+        writer.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
+        writer.append("\t\t<ProjectItem Version=\"1\">\n");
+        writer.append("\t\t\t<Node Version=\"1\">\n");
+        writer.append("\t\t\t\t<Properties Version=\"1\">\n");
+        writer.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
+        writer.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
 
-        file.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
-        file.append("\t\t\t\t</Properties>\n");
-        file.append("\t\t\t\t<ID>1000000</ID>\n");
-        file.append("\t\t\t</Node>\n");
-        file.append("\t\t\t<Name>Root Bin</Name>\n");
-        file.append("\t\t</ProjectItem>\n");
-        file.append("\t\t<ProjectItemContainer Version=\"1\">\n");
+        writer.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
+        writer.append("\t\t\t\t</Properties>\n");
+        writer.append("\t\t\t\t<ID>1000000</ID>\n");
+        writer.append("\t\t\t</Node>\n");
+        writer.append("\t\t\t<Name>Root Bin</Name>\n");
+        writer.append("\t\t</ProjectItem>\n");
+        writer.append("\t\t<ProjectItemContainer Version=\"1\">\n");
     }
 
     /**
      * Ecrit la structure du projet, la fin.
      *
-     * @param file
+     * @param writer
      */
-    private void end(@NotNull PrintWriter file) {
-        file.append("\t\t</ProjectItemContainer>\n");
-        file.append("\t</RootProjectItem>\n");
-        file.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
-        file.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
-        file.append("\t\t<AudioCompileSettings ObjectRef=\"15\"/>\n");
-        file.append("\t\t<CaptureSettings ObjectRef=\"16\"/>\n");
-        file.append("\t\t<DefaultSequenceSettings ObjectRef=\"17\"/>\n");
-        file.append("\t\t<EditingModeID>00000000-0000-0000-0000-000000000000</EditingModeID>\n");
-        file.append("\t\t<PreviewFileFormatID>00000000-0000-0000-0000-000000000000</PreviewFileFormatID>\n");
-        file.append("\t\t<VideoTimeDisplay>102</VideoTimeDisplay>\n");
-        file.append("\t\t<VideoTimeDisplayInitial>102</VideoTimeDisplayInitial>\n");
-        file.append("\t\t<AudioTimeDisplay>200</AudioTimeDisplay>\n");
-        file.append("\t\t<ActionSafeWidth>10</ActionSafeWidth>\n");
-        file.append("\t\t<ActionSafeHeight>10</ActionSafeHeight>\n");
-        file.append("\t\t<TitleSafeWidth>20</TitleSafeWidth>\n");
-        file.append("\t\t<TitleSafeHeight>20</TitleSafeHeight>\n");
-        file.append("\t\t<ShouldScaleMedia>false</ShouldScaleMedia>\n");
-        file.append("\t\t<UsePreviewCache>false</UsePreviewCache>\n");
-        file.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
-        file.append("\t</ProjectSettings>\n");
+    private void end(@NotNull PrintWriter writer) {
+        writer.append("\t\t</ProjectItemContainer>\n");
+        writer.append("\t</RootProjectItem>\n");
+        writer.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
+        writer.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
+        writer.append("\t\t<AudioCompileSettings ObjectRef=\"15\"/>\n");
+        writer.append("\t\t<CaptureSettings ObjectRef=\"16\"/>\n");
+        writer.append("\t\t<DefaultSequenceSettings ObjectRef=\"17\"/>\n");
+        writer.append("\t\t<EditingModeID>00000000-0000-0000-0000-000000000000</EditingModeID>\n");
+        writer.append("\t\t<PreviewFileFormatID>00000000-0000-0000-0000-000000000000</PreviewFileFormatID>\n");
+        writer.append("\t\t<VideoTimeDisplay>102</VideoTimeDisplay>\n");
+        writer.append("\t\t<VideoTimeDisplayInitial>102</VideoTimeDisplayInitial>\n");
+        writer.append("\t\t<AudioTimeDisplay>200</AudioTimeDisplay>\n");
+        writer.append("\t\t<ActionSafeWidth>10</ActionSafeWidth>\n");
+        writer.append("\t\t<ActionSafeHeight>10</ActionSafeHeight>\n");
+        writer.append("\t\t<TitleSafeWidth>20</TitleSafeWidth>\n");
+        writer.append("\t\t<TitleSafeHeight>20</TitleSafeHeight>\n");
+        writer.append("\t\t<ShouldScaleMedia>false</ShouldScaleMedia>\n");
+        writer.append("\t\t<UsePreviewCache>false</UsePreviewCache>\n");
+        writer.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
+        writer.append("\t</ProjectSettings>\n");
 
         List<CompileSettings> liste_compile_settings = new ArrayList<CompileSettings>();
 
@@ -1515,276 +1514,276 @@ public final class AdobePremiereProject {
         liste_compile_settings.add(new CompileSettings(8, 26, 27));
 
         for (CompileSettings compile_setting : liste_compile_settings) {
-            compile_setting.toXML(file);
+            compile_setting.toXML(writer);
         }
 
         String same_as_project = "SameAsProject";
 
-        file.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
-        file.append("\t\t<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
-        file.append("\t\t<CCLibrariesLocation0>" + same_as_project + "</CCLibrariesLocation0>\n");
-        file.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
-        file.append("\t\t<TransferMediaLocation0>" + same_as_project + "</TransferMediaLocation0>\n");
-        file.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
-        file.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
-        file.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
-        file.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
-        file.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
-        file.append("\t</ScratchDiskSettings>\n");
+        writer.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
+        writer.append("\t\t<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
+        writer.append("\t\t<CCLibrariesLocation0>" + same_as_project + "</CCLibrariesLocation0>\n");
+        writer.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
+        writer.append("\t\t<TransferMediaLocation0>" + same_as_project + "</TransferMediaLocation0>\n");
+        writer.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
+        writer.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
+        writer.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
+        writer.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
+        writer.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
+        writer.append("\t</ScratchDiskSettings>\n");
 
-        file.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
-        file.append("\t\t<Enabled>false</Enabled>\n");
-        file.append("\t\t<Action>copy</Action>\n");
-        file.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
-        file.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
-        file.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
-        file.append("\t</IngestSettings>\n");
+        writer.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
+        writer.append("\t\t<Enabled>false</Enabled>\n");
+        writer.append("\t\t<Action>copy</Action>\n");
+        writer.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
+        writer.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
+        writer.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
+        writer.append("\t</IngestSettings>\n");
 
-        file.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
-        file.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
-        file.append("\t</WorkspaceSettings>\n");
+        writer.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
+        writer.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
+        writer.append("\t</WorkspaceSettings>\n");
 
         // Ajoute les dossiers de niveau 0 = ceux à la racine du projet.
-        binProject(file, 0);
+        binProject(writer, 0);
 
-        file.append("\t<VideoSettings ObjectID=\"12\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"12\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"13\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"13\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"14\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"28\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"14\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"28\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
-        file.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
-        file.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
-        file.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
-        file.append("\t\t<VideoFrameRate>8475667200</VideoFrameRate>\n");
-        file.append("\t\t<VideoFrameSize>0,0,720,480</VideoFrameSize>\n");
-        file.append("\t\t<VideoCompressorFourCC>0</VideoCompressorFourCC>\n");
-        file.append("\t\t<AudioCompressorFourCC>1380013856</AudioCompressorFourCC>\n");
-        file.append("\t\t<AudioCompressorDisplayName>Non compressé</AudioCompressorDisplayName>\n");
-        file.append("\t\t<AudioFrameRate>7938000</AudioFrameRate>\n");
-        file.append("\t\t<AudioSampleType>3</AudioSampleType>\n");
-        file.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
-        file.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
-        file.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
-        file.append("\t</CaptureSettings>\n");
+        writer.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
+        writer.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
+        writer.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
+        writer.append("\t\t<VideoFrameRate>8475667200</VideoFrameRate>\n");
+        writer.append("\t\t<VideoFrameSize>0,0,720,480</VideoFrameSize>\n");
+        writer.append("\t\t<VideoCompressorFourCC>0</VideoCompressorFourCC>\n");
+        writer.append("\t\t<AudioCompressorFourCC>1380013856</AudioCompressorFourCC>\n");
+        writer.append("\t\t<AudioCompressorDisplayName>Non compressé</AudioCompressorDisplayName>\n");
+        writer.append("\t\t<AudioFrameRate>7938000</AudioFrameRate>\n");
+        writer.append("\t\t<AudioSampleType>3</AudioSampleType>\n");
+        writer.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
+        writer.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
+        writer.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
+        writer.append("\t</CaptureSettings>\n");
 
-        file.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
-        file.append("\t\t<TotalVideoTracks>1</TotalVideoTracks>\n");
-        file.append("\t\t<DefaultAudioStandardMonoTracks>0</DefaultAudioStandardMonoTracks>\n");
-        file.append("\t\t<DefaultAudioStandardStereoTracks>1</DefaultAudioStandardStereoTracks>\n");
-        file.append("\t\t<DefaultAudioStandard51Tracks>0</DefaultAudioStandard51Tracks>\n");
-        file.append("\t\t<DefaultAudioSubmixMonoTracks>0</DefaultAudioSubmixMonoTracks>\n");
-        file.append("\t\t<DefaultAudioSubmixStereoTracks>0</DefaultAudioSubmixStereoTracks>\n");
-        file.append("\t\t<DefaultAudioSubmix51Tracks>0</DefaultAudioSubmix51Tracks>\n");
-        file.append("\t</DefaultSequenceSettings>\n");
+        writer.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
+        writer.append("\t\t<TotalVideoTracks>1</TotalVideoTracks>\n");
+        writer.append("\t\t<DefaultAudioStandardMonoTracks>0</DefaultAudioStandardMonoTracks>\n");
+        writer.append("\t\t<DefaultAudioStandardStereoTracks>1</DefaultAudioStandardStereoTracks>\n");
+        writer.append("\t\t<DefaultAudioStandard51Tracks>0</DefaultAudioStandard51Tracks>\n");
+        writer.append("\t\t<DefaultAudioSubmixMonoTracks>0</DefaultAudioSubmixMonoTracks>\n");
+        writer.append("\t\t<DefaultAudioSubmixStereoTracks>0</DefaultAudioSubmixStereoTracks>\n");
+        writer.append("\t\t<DefaultAudioSubmix51Tracks>0</DefaultAudioSubmix51Tracks>\n");
+        writer.append("\t</DefaultSequenceSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"18\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"30\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"18\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"30\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"32\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"32\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"34\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"34\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
 
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"36\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"36\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
-        file.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        file.append("\t\t<VideoSettings ObjectRef=\"38\"/>\n");
-        file.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        file.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        file.append("\t\t<Compressor>1685288560</Compressor>\n");
-        file.append("\t\t<Depth>24</Depth>\n");
-        file.append("\t\t<Aspect43>false</Aspect43>\n");
-        file.append("\t\t<Quality>100</Quality>\n");
-        file.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        file.append("\t\t<DataRate>3500</DataRate>\n");
-        file.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        file.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        file.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        file.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        file.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        file.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        file.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        file.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        file.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        file.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        file.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        file.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        file.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        file.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        file.append("\t</VideoCompileSettings>\n");
+        writer.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        writer.append("\t\t<VideoSettings ObjectRef=\"38\"/>\n");
+        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
+        writer.append("\t\t<Depth>24</Depth>\n");
+        writer.append("\t\t<Aspect43>false</Aspect43>\n");
+        writer.append("\t\t<Quality>100</Quality>\n");
+        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        writer.append("\t\t<DataRate>3500</DataRate>\n");
+        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        writer.append("\t</VideoCompileSettings>\n");
 
-        file.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        file.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
-        file.append("\t\t<SampleType>3</SampleType>\n");
-        file.append("\t\t<Compressor>1380013856</Compressor>\n");
-        file.append("\t\t<Interleave>1</Interleave>\n");
-        file.append("\t</AudioCompileSettings>\n");
+        writer.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        writer.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
+        writer.append("\t\t<SampleType>3</SampleType>\n");
+        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
+        writer.append("\t\t<Interleave>1</Interleave>\n");
+        writer.append("\t</AudioCompileSettings>\n");
 
         // Ajout les dossier de niveau 1 (sous-dossier).
-        this.binProject(file, 1);
+        this.binProject(writer, 1);
 
         String classID = "fb11c33a-b0a9-4465-aa94-b6d5db2628cf";
 
@@ -1792,18 +1791,18 @@ public final class AdobePremiereProject {
         for (Element element : this.elements) {
             // Si c'est une séquence.
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                file.append("\t<MasterClip ObjectUID=\"" + "ad5bd5cb-4336-473d-a7f2-74386fbfd563" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
-                file.append("\t\t<LoggingInfo ObjectRef=\"40\"/>\n");
-                file.append("\t\t<AudioComponentChains Version=\"1\">\n");
-                file.append("\t\t\t<AudioComponentChain Index=\"0\" ObjectRef=\"41\"/>\n");
-                file.append("\t\t</AudioComponentChains>\n");
-                file.append("\t\t<Clips Version=\"1\">\n");
-                file.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"42\"/>\n");
-                file.append("\t\t\t<Clip Index=\"1\" ObjectRef=\"43\"/>\n");
-                file.append("\t\t</Clips>\n");
-                file.append("\t\t<AudioClipChannelGroups ObjectRef=\"44\"/>\n");
-                file.append("\t\t<Name>" + element.getName() + "</Name>\n");
-                file.append("\t</MasterClip>\n");
+                writer.append("\t<MasterClip ObjectUID=\"" + "ad5bd5cb-4336-473d-a7f2-74386fbfd563" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
+                writer.append("\t\t<LoggingInfo ObjectRef=\"40\"/>\n");
+                writer.append("\t\t<AudioComponentChains Version=\"1\">\n");
+                writer.append("\t\t\t<AudioComponentChain Index=\"0\" ObjectRef=\"41\"/>\n");
+                writer.append("\t\t</AudioComponentChains>\n");
+                writer.append("\t\t<Clips Version=\"1\">\n");
+                writer.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"42\"/>\n");
+                writer.append("\t\t\t<Clip Index=\"1\" ObjectRef=\"43\"/>\n");
+                writer.append("\t\t</Clips>\n");
+                writer.append("\t\t<AudioClipChannelGroups ObjectRef=\"44\"/>\n");
+                writer.append("\t\t<Name>" + element.getName() + "</Name>\n");
+                writer.append("\t</MasterClip>\n");
             }
         }
 
@@ -1811,137 +1810,137 @@ public final class AdobePremiereProject {
         for (Element element : this.elements) {
             // Si c'est une séquence.
             if (element.getTypeElement() == TypeElement.TITLE) {
-                file.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
-                file.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
-                file.append("\t\t<Clips Version=\"1\">\n");
-                file.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
-                file.append("\t\t</Clips>\n");
-                file.append("\t\t<AudioClipChannelGroups ObjectRef=\"47\"/>\n");
-                file.append("\t\t<Name>" + element.getName() + "</Name>\n");
-                file.append("\t</MasterClip>\n");
+                writer.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
+                writer.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
+                writer.append("\t\t<Clips Version=\"1\">\n");
+                writer.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
+                writer.append("\t\t</Clips>\n");
+                writer.append("\t\t<AudioClipChannelGroups ObjectRef=\"47\"/>\n");
+                writer.append("\t\t<Name>" + element.getName() + "</Name>\n");
+                writer.append("\t</MasterClip>\n");
             }
         }
 
-        file.append("\t<VideoSettings ObjectID=\"28\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"28\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"29\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"29\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoSettings ObjectID=\"30\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"30\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"31\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"31\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoSettings ObjectID=\"32\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"32\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"33\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"33\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoSettings ObjectID=\"34\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"34\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"35\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"35\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoSettings ObjectID=\"36\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"36\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"37\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"37\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
-        file.append("\t<VideoSettings ObjectID=\"38\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        file.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        file.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        file.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        file.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        file.append("\t</VideoSettings>\n");
+        writer.append("\t<VideoSettings ObjectID=\"38\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        writer.append("\t</VideoSettings>\n");
 
-        file.append("\t<AudioSettings ObjectID=\"39\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        file.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        file.append("\t\t<ChannelType>1</ChannelType>\n");
-        file.append("\t</AudioSettings>\n");
+        writer.append("\t<AudioSettings ObjectID=\"39\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        writer.append("\t\t<ChannelType>1</ChannelType>\n");
+        writer.append("\t</AudioSettings>\n");
 
         // Ajout les éléments de niveau 2.
-        this.binProject(file, 2);
+        this.binProject(writer, 2);
 
         // Clip
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).clip(file);
+                ((Sequence) element).clip(writer);
             }
         }
 
         // Ajout des ClipLoggingInfo.
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).clipLoggingInfo(file);
+                ((Title) element).clipLoggingInfo(writer);
             }
         }
 
         // AudioSequenceSource
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).audioSequenceSource(file);
+                ((Sequence) element).audioSequenceSource(writer);
             }
         }
 
         // VideoMediaSource
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).videoMediaSource(file);
+                ((Title) element).videoMediaSource(writer);
             }
         }
 
         // Sequence
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).sequence(file);
+                ((Sequence) element).sequence(writer);
             }
         }
 
         // Ajout des médias.
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).media(file);
+                ((Title) element).media(writer);
             }
         }
 
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).audioTrackGroup(file);
+                ((Sequence) element).audioTrackGroup(writer);
             }
         }
 
@@ -1963,8 +1962,8 @@ public final class AdobePremiereProject {
                 ((Sequence) element).videoClip(file);
             }
         }*/
-        file.append("</PremiereData>\n");
-        file.append("\n");
+        writer.append("</PremiereData>\n");
+        writer.append("\n");
     }
 
     /**
