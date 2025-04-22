@@ -15,4 +15,13 @@ public final class ColumnList {
     @NotNull
     @NotBlank
     public static final String ClassID = "a1c709cd-35df-4821-8200-03565d374155";
+
+    /**
+     * On ne peut pas instancier cette classe.
+     *
+     * @throws Exception On ne peut pas instancier cette classe.
+     */
+    private ColumnList() throws Exception {
+        throw new Exception("Cette classe ne peut pas être instanciée.");
+    }
 }

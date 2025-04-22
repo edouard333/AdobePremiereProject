@@ -8,6 +8,9 @@ import jakarta.validation.constraints.Null;
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public enum MarkerColor {
+    /**
+     *
+     */
     RED(4281740498L);
 
     /**

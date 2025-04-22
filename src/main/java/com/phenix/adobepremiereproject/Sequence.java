@@ -4,6 +4,7 @@ import com.phenix.timecode.Framerate;
 import com.phenix.timecode.Timecode;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Timeline dans Adobe Première.
@@ -50,12 +51,12 @@ public final class Sequence extends ElementInSequence {
     /**
      * Liste des éléments dans la séquence.
      */
-    private ArrayList<ElementInSequence> liste_clip;
+    private List<ElementInSequence> liste_clip;
 
     /**
      * Liste des marqueurs de la séquence.
      */
-    private ArrayList<MarkerInSequence> liste_marqueur;
+    private List<MarkerInSequence> liste_marqueur;
 
     /**
      * Identifiant des markers.
@@ -949,7 +950,7 @@ public final class Sequence extends ElementInSequence {
             file.append("\t</SubClip>\n");
         }
 
-        ArrayList<AudioComponentParam> audioComponentParams = new ArrayList<AudioComponentParam>();
+        List<AudioComponentParam> audioComponentParams = new ArrayList<AudioComponentParam>();
         audioComponentParams.add(new AudioComponentParam(ObjectID++, "a714635e-a628-4b27-9d59-77eba47dbc1a", 2, "Volume", "dB", 2, 358326041532800L));
 
         audioComponentParams.add(new AudioComponentParam(ObjectID++, "32657501-3aa4-445f-a49b-d09ecb9fa1ae", 0, "Silence", "", 4, 358326041544500L));

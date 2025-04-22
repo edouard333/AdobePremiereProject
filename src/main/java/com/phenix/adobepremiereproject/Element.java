@@ -1,5 +1,9 @@
 package com.phenix.adobepremiereproject;
 
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
+
 /**
  * Classe générique pour tous les éléments.
  *
@@ -69,11 +73,15 @@ abstract class Element implements AdobeXML {
     /**
      * ID unique du dossier.
      */
+    @NotNull
+    @NotEmpty
     private final String[] ObjectUID = {"2650d29e-54c1-426b-9ba6-7ca4553e0deb", "b9681102-4102-4254-b37b-7484bd316927"};
 
     /**
      * UID entre les éléments.
      */
+    @NotNull
+    @NotEmpty
     private final String[] ObjectURef = {
         "a06df6aa-0739-444e-bfe5-e83daa9a046a",
         "a4f8b02c-775f-4273-81e9-8884e9fe32a0",
@@ -115,7 +123,7 @@ abstract class Element implements AdobeXML {
      * @param name
      * @param type_element
      */
-    public Element(Folder parent, String name, TypeElement type_element) {
+    public Element(@Null Folder parent, String name, TypeElement type_element) {
         this.name = name;
 
         // Définit le class ID.
@@ -151,7 +159,7 @@ abstract class Element implements AdobeXML {
      *
      * @param parent
      */
-    public void setParent(Folder parent) {
+    public void setParent(@Null Folder parent) {
         this.parent = parent;
 
         // S'il a un parent, on prend celui du parent +1.

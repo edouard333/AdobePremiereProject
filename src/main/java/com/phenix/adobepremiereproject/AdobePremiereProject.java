@@ -13,11 +13,11 @@ import com.phenix.adobepremiereproject.column.TimecodeColumn;
 import com.phenix.adobepremiereproject.exception.AdobePremiereProjectException;
 import com.phenix.adobepremiereproject.setting.CompileSettings;
 import com.phenix.compression.ZipFiles;
+import com.phenix.compression.exception.ZipCustomException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -25,10 +25,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -75,7 +75,7 @@ public final class AdobePremiereProject {
      * Les éléments du projet.
      */
     @NotNull
-    private final ArrayList<Element> elements;
+    private final List<Element> elements;
 
     /**
      * Crée le fichier de XML qui se retrouvera dans le ZIP.
@@ -131,8 +131,8 @@ public final class AdobePremiereProject {
 
             // Supprime le fichier temporaire.
             fichier_tmp.delete();
-        } catch (IOException exception) {
-            throw new AdobePremiereProjectException(exception.getMessage());
+        } catch (IOException | ZipCustomException exception) {
+            throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }
     }
 
@@ -266,7 +266,7 @@ public final class AdobePremiereProject {
         this.ColumnList(file, 3, column_index_max_exclu, delta);
         this.ColumnList(file, 4, column_index_max_exclu, column_index_max_exclu + delta);
 
-        ArrayList<Column> liste_column = new ArrayList<Column>();
+        List<Column> liste_column = new ArrayList<Column>();
 
         int object_id = 4;
 
@@ -1418,7 +1418,7 @@ public final class AdobePremiereProject {
             } else if (nom_classe_column.equals(BoolPropertyColumn.class.getName())) {
                 ((BoolPropertyColumn) column).toXML(file);
             } else {
-                throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'");
+                throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'.");
             }
         }
 
@@ -1506,7 +1506,7 @@ public final class AdobePremiereProject {
         file.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
         file.append("\t</ProjectSettings>\n");
 
-        ArrayList<CompileSettings> liste_compile_settings = new ArrayList<CompileSettings>();
+        List<CompileSettings> liste_compile_settings = new ArrayList<CompileSettings>();
 
         liste_compile_settings.add(new CompileSettings(4, 18, 19));
         liste_compile_settings.add(new CompileSettings(5, 20, 21));
@@ -1989,57 +1989,58 @@ public final class AdobePremiereProject {
      *
      * @param version Version qu'on veut pour ce projet.
      *
-     * @throws FileNotFoundException
-     * @throws ParserConfigurationException
-     * @throws SAXException
-     * @throws TransformerConfigurationException
+     * @throws AdobePremiereProjectException
      */
-    public void downgrade(String version) throws FileNotFoundException, ParserConfigurationException, SAXException, IOException, TransformerConfigurationException, TransformerException {
+    public void downgrade(String version) throws AdobePremiereProjectException {
         File fichier_tmp = this.getFichierXMLTemporaire();
 
-        ZipFiles.decompressGzipFile(this.fichier, fichier_tmp);
+        try {
+            ZipFiles.decompressGzipFile(this.fichier, fichier_tmp);
 
-        Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
+            Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
 
-        NodeList list = xml.getDocumentElement().getChildNodes();
+            NodeList list = xml.getDocumentElement().getChildNodes();
 
-        // Récupère et modifie la valeur actuelle.
-        for (int i = 0; i < list.getLength(); i++) {
-            //System.out.println("Node : " + list.item(i).getNodeName());
+            // Récupère et modifie la valeur actuelle.
+            for (int i = 0; i < list.getLength(); i++) {
+                //System.out.println("Node : " + list.item(i).getNodeName());
 
-            if (list.item(i).getNodeType() == Node.ELEMENT_NODE && list.item(i).getNodeName().equals("Project")) {
-                org.w3c.dom.Element balise_project = (org.w3c.dom.Element) list.item(i);
+                if (list.item(i).getNodeType() == Node.ELEMENT_NODE && list.item(i).getNodeName().equals("Project")) {
+                    org.w3c.dom.Element balise_project = (org.w3c.dom.Element) list.item(i);
 
-                String attribute_version = balise_project.getAttribute("Version");
+                    String attribute_version = balise_project.getAttribute("Version");
 
-                // Si pour l'attribut "Version" il y a une valeur, c'est la bonne balise !
-                if (!attribute_version.isEmpty()) {
-                    balise_project.setAttribute("Version", version);
+                    // Si pour l'attribut "Version" il y a une valeur, c'est la bonne balise !
+                    if (!attribute_version.isEmpty()) {
+                        balise_project.setAttribute("Version", version);
 
-                    // On ne doit plus rien faire, donc on peut quitter la boucle.
-                    break;
+                        // On ne doit plus rien faire, donc on peut quitter la boucle.
+                        break;
+                    }
                 }
             }
+
+            // Sauve les changements.
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(xml);
+
+            File xml_temporaire = new File(fichier_tmp.getAbsolutePath().replace(EXTENSION_TMP, ""));
+
+            StreamResult result = new StreamResult(xml_temporaire);
+            transformer.transform(source, result);
+
+            // For console Output.
+            StreamResult consoleResult = new StreamResult(System.out);
+            transformer.transform(source, consoleResult);
+
+            ZipFiles.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
+
+            // On supprime les fichiers temporaires.
+            fichier_tmp.delete();
+            xml_temporaire.delete();
+        } catch (IOException | ParserConfigurationException | SAXException | TransformerException | ZipCustomException exception) {
+            throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }
-
-        // Sauve les changements.
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = transformerFactory.newTransformer();
-        DOMSource source = new DOMSource(xml);
-
-        File xml_temporaire = new File(fichier_tmp.getAbsolutePath().replace(EXTENSION_TMP, ""));
-
-        StreamResult result = new StreamResult(xml_temporaire);
-        transformer.transform(source, result);
-
-        // For console Output.
-        StreamResult consoleResult = new StreamResult(System.out);
-        transformer.transform(source, consoleResult);
-
-        ZipFiles.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
-
-        // On supprime les fichiers temporaires.
-        fichier_tmp.delete();
-        xml_temporaire.delete();
     }
 }

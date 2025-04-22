@@ -6,7 +6,13 @@ package com.phenix.adobepremiereproject;
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public enum ResolutionStandard {
+    /**
+     *
+     */
     HD(1920, 1080),
+    /**
+     *
+     */
     UHD(3840, 2160);
 
     /**

@@ -71,16 +71,24 @@ class TextDescription {
                 NodeList type_spec = liste.item(i).getChildNodes();
 
                 for (int j = 0; j < type_spec.getLength(); j++) {
-                    if (type_spec.item(j).getNodeName().equals("size")) {
-                        System.out.println("size : " + type_spec.item(j).getTextContent());
-                    } else if (type_spec.item(j).getNodeName().equals("fiBold")) {
-                        this.bold = Boolean.parseBoolean(type_spec.item(j).getTextContent());
-                    } else if (type_spec.item(j).getNodeName().equals("fiItalic")) {
-                        this.italic = Boolean.parseBoolean(type_spec.item(j).getTextContent());
-                    } else if (type_spec.item(j).getNodeName().equals("fifontFamilyName")) {
-                        this.font = type_spec.item(j).getTextContent();
-                    } else if (type_spec.item(j).getNodeName().equals("fifontStyle")) {
-                        this.style_font = type_spec.item(j).getTextContent();
+                    switch (type_spec.item(j).getNodeName()) {
+                        case "size":
+                            System.out.println("size : " + type_spec.item(j).getTextContent());
+                            break;
+                        case "fiBold":
+                            this.bold = Boolean.parseBoolean(type_spec.item(j).getTextContent());
+                            break;
+                        case "fiItalic":
+                            this.italic = Boolean.parseBoolean(type_spec.item(j).getTextContent());
+                            break;
+                        case "fifontFamilyName":
+                            this.font = type_spec.item(j).getTextContent();
+                            break;
+                        case "fifontStyle":
+                            this.style_font = type_spec.item(j).getTextContent();
+                            break;
+                        default:
+                            break;
                     }
                 }
             }

@@ -1,8 +1,8 @@
 package com.phenix.adobepremiereproject.adobetitle;
 
 import com.phenix.adobepremiereproject.adobetitle.font.Font;
+import jakarta.validation.constraints.NotNull;
 import java.io.File;
-import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -41,6 +41,7 @@ public final class Text {
         } catch (Exception exception) {
             exception.printStackTrace();
         }
+
         this.needTextDescription = false;
     }
 
@@ -50,7 +51,7 @@ public final class Text {
      * @param node
      * @param textDescription
      */
-    public Text(Node node, ArrayList<TextDescription> textDescription) {
+    public Text(@NotNull Node node, @NotNull Iterable<TextDescription> textDescription) {
         this.node = node;
 
         System.out.println("> text : " + node.getNodeName());
@@ -118,9 +119,9 @@ public final class Text {
                                 System.out.println("TextRef : " + reference);
 
                                 // On lie le TextDescription qu'on a avec le bon texte...
-                                for (int l = 0; l < textDescription.size(); l++) {
-                                    if (textDescription.get(l).getReference() == reference) {
-                                        this.textDescription = textDescription.get(l);
+                                for (TextDescription text_description : textDescription) {
+                                    if (text_description.getReference() == reference) {
+                                        this.textDescription = text_description;
                                     }
                                 }
                             }

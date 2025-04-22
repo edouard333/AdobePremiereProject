@@ -2,6 +2,7 @@ package com.phenix.adobepremiereproject;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Dossier dans un projet Adobe Premiere Pro CC2017.
@@ -13,7 +14,7 @@ public final class Folder extends Element {
     /**
      * Les liens qu'il a avec des enfants.
      */
-    protected ArrayList<String> sub_ObjectURef;
+    protected List<String> sub_ObjectURef;
 
     /**
      * Indique si le dossier doit être ouvert ou non.
@@ -99,7 +100,7 @@ public final class Folder extends Element {
      *
      * @return L'Object URefs.
      */
-    public ArrayList<String> getObjectURefs() {
+    public List<String> getObjectURefs() {
         return this.sub_ObjectURef;
     }
 

@@ -15,4 +15,13 @@ public final class Project {
     @NotNull
     @NotBlank
     public static final String ClassID = "62ad66dd-0dcd-42da-a660-6d8fbde94876";
+
+    /**
+     * On ne peut pas instancier cette classe.
+     *
+     * @throws Exception On ne peut pas instancier cette classe.
+     */
+    private Project() throws Exception {
+        throw new Exception("Cette classe ne peut pas être instanciée.");
+    }
 }

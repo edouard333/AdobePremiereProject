@@ -3,6 +3,7 @@ package com.phenix.adobepremiereproject;
 import com.phenix.adobepremiereproject.adobetitle.AdobeTitle;
 import com.phenix.adobepremiereproject.adobetitle.Text;
 import com.phenix.timecode.Timecode;
+import jakarta.validation.constraints.NotNull;
 import java.io.PrintWriter;
 
 /**
@@ -108,7 +109,7 @@ public final class Title extends ElementInSequence {
      */
     @Override
     void inSequence(PrintWriter file) {
-        throw new UnsupportedOperationException("Not supported yet."); // To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
@@ -116,11 +117,11 @@ public final class Title extends ElementInSequence {
      * @param file
      */
     @Override
-    public void media(PrintWriter file) {
+    public void media(@NotNull PrintWriter file) {
         file.append("\t<Media ObjectUID=\"285b90b1-ba3a-48f2-9807-34d474e53f16\" ClassID=\"7a5c103e-f3ac-4391-b6b4-7cc3d2f9a7ff\" Version=\"26\">\n");
         file.append("\t	<VideoStream ObjectRef=\"102\"/>\n");
         try {
-            file.append("\t	<ImporterPrefs Encoding=\"base64\" BinaryHash=\"08750ff2-29d4-c8a2-ee5f-bb8400000e04\">" + adobeTitle.toXML() + "\n");
+            file.append("\t	<ImporterPrefs Encoding=\"base64\" BinaryHash=\"08750ff2-29d4-c8a2-ee5f-bb8400000e04\">" + this.adobeTitle.toXML() + "\n");
         } catch (Exception exception) {
             exception.printStackTrace();
         }
