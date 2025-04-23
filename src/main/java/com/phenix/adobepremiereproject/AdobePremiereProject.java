@@ -2000,12 +2000,15 @@ public final class AdobePremiereProject {
 
             NodeList list = xml.getDocumentElement().getChildNodes();
 
+            Node node_item;
+
             // Récupère et modifie la valeur actuelle.
             for (int i = 0; i < list.getLength(); i++) {
+                node_item = list.item(i);
                 //System.out.println("Node : " + list.item(i).getNodeName());
 
-                if (list.item(i).getNodeType() == Node.ELEMENT_NODE && list.item(i).getNodeName().equals("Project")) {
-                    org.w3c.dom.Element balise_project = (org.w3c.dom.Element) list.item(i);
+                if (node_item.getNodeType() == Node.ELEMENT_NODE && node_item.getNodeName().equals("Project")) {
+                    org.w3c.dom.Element balise_project = (org.w3c.dom.Element) node_item;
 
                     String attribute_version = balise_project.getAttribute("Version");
 

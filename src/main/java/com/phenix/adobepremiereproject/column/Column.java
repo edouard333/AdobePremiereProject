@@ -165,7 +165,7 @@ public class Column {
         writer.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
 
         if (properties != null) {
-            properties.addProperties(file);
+            properties.addProperties(writer);
         }
         writer.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
     }

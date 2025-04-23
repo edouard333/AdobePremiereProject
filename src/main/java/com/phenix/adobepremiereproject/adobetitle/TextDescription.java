@@ -68,27 +68,24 @@ class TextDescription {
         for (int i = 0; i < liste.getLength(); i++) {
             // On rentre dans le node :
             if (liste.item(i).getNodeName().equals("TypeSpec")) {
-                NodeList type_spec = liste.item(i).getChildNodes();
+                NodeList liste_type_spec = liste.item(i).getChildNodes();
 
-                for (int j = 0; j < type_spec.getLength(); j++) {
-                    switch (type_spec.item(j).getNodeName()) {
-                        case "size":
-                            System.out.println("size : " + type_spec.item(j).getTextContent());
-                            break;
-                        case "fiBold":
-                            this.bold = Boolean.parseBoolean(type_spec.item(j).getTextContent());
-                            break;
-                        case "fiItalic":
-                            this.italic = Boolean.parseBoolean(type_spec.item(j).getTextContent());
-                            break;
-                        case "fifontFamilyName":
-                            this.font = type_spec.item(j).getTextContent();
-                            break;
-                        case "fifontStyle":
-                            this.style_font = type_spec.item(j).getTextContent();
-                            break;
-                        default:
-                            break;
+                Node node_type_spec;
+
+                for (int j = 0; j < liste_type_spec.getLength(); j++) {
+                    node_type_spec = liste_type_spec.item(j);
+
+                    switch (node_type_spec.getNodeName()) {
+                        case "size" ->
+                            System.out.println("size : " + node_type_spec.getTextContent());
+                        case "fiBold" ->
+                            this.bold = Boolean.parseBoolean(node_type_spec.getTextContent());
+                        case "fiItalic" ->
+                            this.italic = Boolean.parseBoolean(node_type_spec.getTextContent());
+                        case "fifontFamilyName" ->
+                            this.font = node_type_spec.getTextContent();
+                        case "fifontStyle" ->
+                            this.style_font = node_type_spec.getTextContent();
                     }
                 }
             }

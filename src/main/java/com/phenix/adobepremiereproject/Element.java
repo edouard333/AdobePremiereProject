@@ -128,16 +128,13 @@ abstract class Element implements AdobeXML {
 
         // Définit le class ID.
         switch (type_element) {
-            case SEQUENCE:
+            case SEQUENCE ->
                 this.classID = "cb4e0ed7-aca1-4171-8525-e3658dec06dd";
-                break;
-            case FOLDER:
+            case FOLDER ->
                 this.classID = "dbfd6653-24da-480e-a35e-ba45e9504e4b";
-                break;
-            case TITLE:
+            case TITLE ->
                 this.classID = "cb4e0ed7-aca1-4171-8525-e3658dec06dd";
-                break;
-            default:
+            default ->
                 this.classID = "cb4e0ed7-aca1-4171-8525-e3658dec06dd";
         }
         this.type_element = type_element;

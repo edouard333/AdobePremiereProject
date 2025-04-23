@@ -491,7 +491,7 @@ public final class Sequence extends ElementInSequence {
 
         if (!this.liste_marqueur.isEmpty()) {
             for (MarkerInSequence marqueur : this.liste_marqueur) {
-                marqueur.toXML(file);
+                marqueur.toXML(writer);
             }
         }
 
@@ -960,7 +960,7 @@ public final class Sequence extends ElementInSequence {
         audioComponentParams.add(new AudioComponentParam(ObjectID++, "32657501-3aa4-445f-a49b-d09ecb9fa1ae", 0, "Silence", "", 4, 358326031675600L));
 
         for (AudioComponentParam audio_component_param : audioComponentParams) {
-            audio_component_param.toXML(file);
+            audio_component_param.toXML(writer);
         }
     }
 

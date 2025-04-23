@@ -102,17 +102,29 @@ public final class Text {
          */
         NodeList text_chain = this.node.getChildNodes();
 
+        Node node_text_chain;
+
         for (int i = 0; i < text_chain.getLength(); i++) {
-            if (text_chain.item(i).getNodeName().equals("TextLine")) {
-                NodeList text_line = text_chain.item(i).getChildNodes();
+            node_text_chain = text_chain.item(i);
+
+            if (node_text_chain.getNodeName().equals("TextLine")) {
+                NodeList text_line = node_text_chain.getChildNodes();
+
+                Node node_text_line;
 
                 for (int j = 0; j < text_line.getLength(); j++) {
-                    if (text_line.item(j).getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
-                        NodeList character_attributes = text_line.item(j).getChildNodes();
+                    node_text_line = text_line.item(j);
+
+                    if (node_text_line.getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
+                        NodeList character_attributes = node_text_line.getChildNodes();
+
+                        Node node_character_attributes;
 
                         for (int k = 0; k < character_attributes.getLength(); k++) {
-                            if (character_attributes.item(k).getNodeName().equals("CharacterAttributes")) {
-                                Node attribute = character_attributes.item(k);
+                            node_character_attributes = character_attributes.item(k);
+
+                            if (node_character_attributes.getNodeName().equals("CharacterAttributes")) {
+                                Node attribute = node_character_attributes;
 
                                 int reference = Integer.parseInt(attribute.getAttributes().getNamedItem("TextRef").getNodeValue());
 

@@ -138,8 +138,8 @@ public final class Folder extends Element {
         if (!this.getObjectURefs().isEmpty()) {
             writer.append("\t\t\t<Items Version=\"1\">\n");
 
-            for (int j = 0; j < this.getObjectURefs().size(); j++) {
-                writer.append("\t\t\t\t<Item Index=\"" + j + "\" ObjectURef=\"" + this.getObjectURef(j) + "\"/>\n");
+            for (int i = 0; i < this.getObjectURefs().size(); i++) {
+                writer.append("\t\t\t\t<Item Index=\"" + i + "\" ObjectURef=\"" + this.getObjectURef(i) + "\"/>\n");
             }
             writer.append("\t\t\t</Items>\n");
         }

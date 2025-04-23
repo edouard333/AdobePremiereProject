@@ -16,6 +16,7 @@ import java.util.zip.Inflater;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -81,22 +82,35 @@ public final class AdobeTitle {
 
             List<TextDescription> liste_text_description = new ArrayList<TextDescription>();
 
+            Node node_item;
+
             // Ce qui est dans Adobe_Root :
             for (int i = 0; i < list.getLength(); i++) {
-                // Ce qui nous intéresse "InscriberLayouts" :
-                if (list.item(i).getNodeName().equals("InscriberLayouts")) {
-                    System.out.println(i + " : " + list.item(i).getNodeName());
+                node_item = list.item(i);
 
-                    NodeList inscriber = list.item(i).getChildNodes();
+                // Ce qui nous intéresse "InscriberLayouts" :
+                if (node_item.getNodeName().equals("InscriberLayouts")) {
+                    System.out.println(i + " : " + node_item.getNodeName());
+
+                    NodeList inscriber = node_item.getChildNodes();
+
+                    Node node_inscriber;
 
                     for (int j = 0; j < inscriber.getLength(); j++) {
-                        if (inscriber.item(j).getNodeName().equals("Layout")) {
-                            System.out.println(" * " + j + " : " + inscriber.item(j).getNodeName());
+                        node_inscriber = inscriber.item(j);
 
-                            NodeList layout = inscriber.item(j).getChildNodes();
+                        if (node_inscriber.getNodeName().equals("Layout")) {
+                            System.out.println(" * " + j + " : " + node_inscriber.getNodeName());
+
+                            NodeList layout = node_inscriber.getChildNodes();
+
+                            Node node_layout;
+
                             for (int k = 0; k < layout.getLength(); k++) {
+                                node_layout = layout.item(k);
+
                                 // Les fonts/cara lié au texte :
-                                if (layout.item(k).getNodeName().equals("TextDescriptions")) {
+                                if (node_layout.getNodeName().equals("TextDescriptions")) {
                                     System.out.println(" * * " + k + " : " + layout.item(k).getNodeName());
 
                                     NodeList text_descriptions = layout.item(k).getChildNodes();
@@ -106,26 +120,39 @@ public final class AdobeTitle {
                                             liste_text_description.add(new TextDescription(text_descriptions.item(l)));
                                         }
                                     }
-                                }
+                                } else if (node_layout.getNodeName().equals("Layers")) {
+                                    System.out.println(" * * " + k + " : " + node_layout.getNodeName());
 
-                                if (layout.item(k).getNodeName().equals("Layers")) {
-                                    System.out.println(" * * " + k + " : " + layout.item(k).getNodeName());
+                                    NodeList layers = node_layout.getChildNodes();
 
-                                    NodeList layers = layout.item(k).getChildNodes();
+                                    Node node_layers;
+
                                     for (int l = 0; l < layers.getLength(); l++) {
-                                        if (layers.item(l).getNodeName().equals("Layer")) {
-                                            System.out.println(" * * * " + l + " : " + layers.item(l).getNodeName());
+                                        node_layers = layers.item(l);
 
-                                            NodeList layer = layers.item(l).getChildNodes();
+                                        if (node_layers.getNodeName().equals("Layer")) {
+                                            System.out.println(" * * * " + l + " : " + node_layers.getNodeName());
+
+                                            NodeList layer = node_layers.getChildNodes();
+
+                                            Node node_layer;
+
                                             for (int m = 0; m < layer.getLength(); m++) {
+                                                node_layer = layer.item(m);
+
                                                 if (layer.item(m).getNodeName().equals("TextPage")) {
-                                                    System.out.println(" * * * * " + m + " : " + layer.item(m).getNodeName());
+                                                    System.out.println(" * * * * " + m + " : " + node_layer.getNodeName());
 
-                                                    NodeList textPage = layer.item(m).getChildNodes();
+                                                    NodeList textPage = node_layer.getChildNodes();
+
+                                                    Node node_textPage;
+
                                                     for (int n = 0; n < textPage.getLength(); n++) {
-                                                        System.out.println(" * * * * * " + n + " : " + textPage.item(n).getNodeName());
+                                                        node_textPage = textPage.item(n);
 
-                                                        Text tc = new Text(textPage.item(n), liste_text_description);
+                                                        System.out.println(" * * * * * " + n + " : " + node_textPage.getNodeName());
+
+                                                        Text tc = new Text(node_textPage, liste_text_description);
 
                                                         texts.add(tc);
 
