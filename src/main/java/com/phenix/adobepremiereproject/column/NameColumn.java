@@ -1,7 +1,5 @@
 package com.phenix.adobepremiereproject.column;
 
-import java.io.PrintWriter;
-
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
@@ -22,12 +20,8 @@ public final class NameColumn extends Column {
         super("NameColumn", ObjectID, "0547b302-c849-46b3-ae2a-b245e9dd59eb", Name, ID, Type, Class, IsHidden, Width);
     }
 
-    /**
-     *
-     * @param writer
-     */
     @Override
-    public void toXML(PrintWriter writer) {
-        super.toXML(writer);
+    public String toXML() {
+        return super.toXML();
     }
 }

@@ -1,13 +1,16 @@
 package com.phenix.adobepremiereproject.column;
 
-import java.io.PrintWriter;
+import com.phenix.adobepremiereproject.column.internal.AddPropertiesXML;
+import jakarta.validation.constraints.Null;
+import com.phenix.adobepremiereproject.internal.XMLWithPropertiesConvertible;
+import com.phenix.adobepremiereproject.internal.XMLSimpleConvertible;
 
 /**
  * La classe est faite pour être dérivée.
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public class Column {
+public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertible {
 
     /**
      *
@@ -142,31 +145,29 @@ public class Column {
         return this.ObjectID;
     }
 
-    /**
-     *
-     * @param writer
-     */
-    protected void toXML(PrintWriter writer) {
-        this.toXML(writer, null);
+    @Override
+    public String toXML() {
+        return this.toXML(null);
     }
 
-    /**
-     *
-     * @param writer
-     * @param properties
-     */
-    protected void toXML(PrintWriter writer, PropertiesAdd properties) {
-        writer.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
-        writer.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
-        writer.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
-        writer.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
-        writer.append("\t\t\t\t\t\t<Column.Class>" + this.Class + "</Column.Class>\n");
-        writer.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
-        writer.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
+    @Override
+    public String toXML(@Null AddPropertiesXML properties) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Class>" + this.Class + "</Column.Class>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
 
         if (properties != null) {
-            properties.addProperties(writer);
+            stringBuilder.append(properties.addXMLProperties());
         }
-        writer.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
+
+        stringBuilder.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
+
+        return stringBuilder.toString();
     }
 }

@@ -18,10 +18,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -115,67 +112,71 @@ public final class AdobePremiereProject {
      */
     public void save() throws AdobePremiereProjectException {
         // Cloture le fichier temporaire.
-        File fichier_tmp = this.getFichierXMLTemporaire();
-        try (PrintWriter writer = new PrintWriter(fichier_tmp, StandardCharsets.UTF_8)) {
-            this.start(writer);
-            this.item(writer);
-            this.end(writer);
+        File fichierTmp = this.getFichierXMLTemporaire();
+        try (PrintWriter writer = new PrintWriter(fichierTmp, StandardCharsets.UTF_8)) {
+            writer.append(this.toXMLStart());
+            writer.append(this.toXMLItem());
+            writer.append(this.toXMLEnd());
         } catch (IOException exception) {
             throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }
 
         try {
             // Prend le fichier XML et le met dans le GZIP.
-            ZipFiles.compressGzipFile(fichier_tmp, this.fichier);
+            ZipFiles.compressGzipFile(fichierTmp, this.fichier);
 
             // Supprime le fichier temporaire.
-            fichier_tmp.delete();
+            fichierTmp.delete();
         } catch (ZipCustomException exception) {
             throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }
     }
 
     /**
-     * Element à la racine du projet.
-     *
-     * @param writer Flux où écrire les données XML.
+     * Elément à la racine du projet.
      */
-    private void item(@NotNull PrintWriter writer) {
+    private String toXMLItem() {
+        StringBuilder stringBuilder = new StringBuilder();
+
         if (!this.elements.isEmpty()) {
-            writer.append("\t\t\t<Items Version=\"1\">\n");
+            stringBuilder.append("\t\t\t<Items Version=\"1\">\n");
 
             int index = 0;
 
             for (Element element : this.elements) {
                 if (element.getLevel() == 0) {
-                    writer.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
+                    stringBuilder.append("\t\t\t\t<Item Index=\"" + index + "\" ObjectURef=\"" + element.getCurrentObjectURef() + "\"/>\n"); //fea076d7-a8ae-4c4e-b592-93acb1e074fc
                     index++;
                 }
             }
 
-            writer.append("\t\t\t</Items>\n");
+            stringBuilder.append("\t\t\t</Items>\n");
         }
+
+        return stringBuilder.toString();
     }
 
     /**
      * Crée les dossiers.
      *
-     * @param writer Flux où il faut écrire.
      * @param level Niveau de dossier.
      */
-    private void binProject(PrintWriter writer, int level) {
+    private String toXMLBinProject(int level) {
+        StringBuilder stringBuilder = new StringBuilder();
+
         int order = 0;
         for (Element element : this.elements) {
             if (element.getLevel() == level) {
-                element.toXML(writer, order);
+                stringBuilder.append(element.toXML(order));
                 order++;
             }
         }
+
+        return stringBuilder.toString();
     }
 
     /**
      *
-     * @param writer
      * @param ObjectID
      * @param ObjectRef
      * @param ProjectViewStateID
@@ -183,94 +184,101 @@ public final class AdobePremiereProject {
      * @param LastViewed
      * @param IconViewThumbnailSize
      */
-    private void ProjectViewState(@NotNull PrintWriter writer, int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
-        writer.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
-        writer.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>" + ProjectViewStateOriginalID + "</ProjectViewState.OriginalID>\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
-        writer.append("\t\t\t\t\t\t<PreviewView.Visible>false</PreviewView.Visible>\n");
-        writer.append("\t\t\t\t\t\t<ContentView.LastViewed>" + LastViewed + "</ContentView.LastViewed>\n");
-        writer.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>" + IconViewThumbnailSize + "</IconView.Thumbnail.Size>\n");
-        writer.append("\t\t\t\t\t\t<FreeformView.Scale>1</FreeformView.Scale>\n");
-        writer.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
-        writer.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
-        writer.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
-        writer.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
-        writer.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
-        writer.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
-        writer.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
-        writer.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
-        writer.append("\t\t\t\t\t\t<ColumnListContents.Version>16</ColumnListContents.Version>\n");
-        writer.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
-        writer.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
-        writer.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
-        writer.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
-        writer.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
-        writer.append("\t\t\t\t\t</ProjectViewState>\n");
+    private String toXMLProjectViewState(int ObjectID, int ObjectRef, String ProjectViewStateID, String ProjectViewStateOriginalID, String LastViewed, String IconViewThumbnailSize) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("\t\t\t\t\t<ProjectViewState ObjectID=\"" + ObjectID + "\" ClassID=\"18fb911d-4f21-4b7b-b196-b250dad79838\" Version=\"3\">\n");
+        stringBuilder.append("\t\t\t\t\t\t<Columns.List ObjectRef=\"" + ObjectRef + "\"/>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState.ID>" + ProjectViewStateID + "</ProjectViewState.ID>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState.OriginalID>" + ProjectViewStateOriginalID + "</ProjectViewState.OriginalID>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState.BinID>-1</ProjectViewState.BinID>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState.ViewHidden>false</ProjectViewState.ViewHidden>\n");
+        stringBuilder.append("\t\t\t\t\t\t<PreviewView.Visible>false</PreviewView.Visible>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ContentView.LastViewed>" + LastViewed + "</ContentView.LastViewed>\n");
+        stringBuilder.append("\t\t\t\t\t\t<IconView.Thumbnail.Size>" + IconViewThumbnailSize + "</IconView.Thumbnail.Size>\n");
+        stringBuilder.append("\t\t\t\t\t\t<FreeformView.Scale>1</FreeformView.Scale>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ListView.Thumbnail.Size>0</ListView.Thumbnail.Size>\n");
+        stringBuilder.append("\t\t\t\t\t\t<IconView.Thumbnail.State>true</IconView.Thumbnail.State>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ListView.Thumbnail.State>false</ListView.Thumbnail.State>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Thumbnail.ShowsEffects.State>true</Thumbnail.ShowsEffects.State>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Sort.Enabled>true</Sort.Enabled>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Sort.Type>0</Sort.Type>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Sort.Direction>0</Sort.Direction>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Sort.ColumnIndex>2</Sort.ColumnIndex>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ColumnListContents.Version>16</ColumnListContents.Version>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ListView.NameColumnWidth>0</ListView.NameColumnWidth>\n");
+        stringBuilder.append("\t\t\t\t\t\t<IconSort.Type>0</IconSort.Type>\n");
+        stringBuilder.append("\t\t\t\t\t\t<IconSort.Direction>0</IconSort.Direction>\n");
+        stringBuilder.append("\t\t\t\t\t\t<IconSort.ColumnIndex>0</IconSort.ColumnIndex>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Project.IsEAProject>false</Project.IsEAProject>\n");
+        stringBuilder.append("\t\t\t\t\t</ProjectViewState>\n");
+
+        return stringBuilder.toString();
     }
 
     /**
      *
-     * @param writer
      * @param ObjectID
-     * @param column_index_max
+     * @param columnIndexMax
      * @param delta
      */
-    private void ColumnList(@NotNull PrintWriter writer, int ObjectID, int column_index_max, int delta) {
-        writer.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
-        writer.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
+    private String toXMLColumnList(int ObjectID, int columnIndexMax, int delta) {
+        StringBuilder stringBuilder = new StringBuilder();
 
-        for (int i = 0; i < column_index_max; i++) {
-            writer.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + delta) + "\"/>\n");
+        stringBuilder.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
+
+        for (int i = 0; i < columnIndexMax; i++) {
+            stringBuilder.append("\t\t\t\t\t\t\t<Column Index=\"" + i + "\" ObjectRef=\"" + (i + delta) + "\"/>\n");
         }
 
-        writer.append("\t\t\t\t\t\t</Columns>\n");
-        writer.append("\t\t\t\t\t</ColumnList>\n");
+        stringBuilder.append("\t\t\t\t\t\t</Columns>\n");
+        stringBuilder.append("\t\t\t\t\t</ColumnList>\n");
+
+        return stringBuilder.toString();
     }
 
     /**
      * Écrit la structure du projet, le début.
-     *
-     * @param writer Flux où il faut écrire.
      */
-    private void start(@NotNull PrintWriter writer) throws AdobePremiereProjectException {
-        String workspace_name = "Montage";
+    private String toXMLStart() throws AdobePremiereProjectException {
+        StringBuilder stringBuilder = new StringBuilder();
 
-        writer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-        writer.append("<PremiereData Version=\"3\">\n");
-        writer.append("\t<Project ObjectRef=\"1\"/>\n");
-        writer.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
-        writer.append("\t\t<Node Version=\"1\">\n");
-        writer.append("\t\t\t<Properties Version=\"1\">\n");
-        writer.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
-        writer.append("\t\t\t\t\t<ProjectViewStates Version=\"1\">\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"0\">\n");
-        writer.append("\t\t\t\t\t\t\t<First>361ff028-e258-4162-a70b-ddea24afb013</First>\n");
-        writer.append("\t\t\t\t\t\t\t<Second ObjectRef=\"1\"/>\n");
-        writer.append("\t\t\t\t\t\t</ProjectViewState>\n");
-        writer.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"1\">\n");
-        writer.append("\t\t\t\t\t\t\t<First>3625b009-0f43-4db8-8f24-6be33ebbaa5f</First>\n");
-        writer.append("\t\t\t\t\t\t\t<Second ObjectRef=\"2\"/>\n");
-        writer.append("\t\t\t\t\t\t</ProjectViewState>\n");
-        writer.append("\t\t\t\t\t</ProjectViewStates>\n");
+        String workspaceName = "Montage";
 
-        this.ProjectViewState(writer, 1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1");
-        this.ProjectViewState(writer, 2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200");
+        stringBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+        stringBuilder.append("<PremiereData Version=\"3\">\n");
+        stringBuilder.append("\t<Project ObjectRef=\"1\"/>\n");
+        stringBuilder.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
+        stringBuilder.append("\t\t<Node Version=\"1\">\n");
+        stringBuilder.append("\t\t\t<Properties Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");
+        stringBuilder.append("\t\t\t\t\t<ProjectViewStates Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"0\">\n");
+        stringBuilder.append("\t\t\t\t\t\t\t<First>361ff028-e258-4162-a70b-ddea24afb013</First>\n");
+        stringBuilder.append("\t\t\t\t\t\t\t<Second ObjectRef=\"1\"/>\n");
+        stringBuilder.append("\t\t\t\t\t\t</ProjectViewState>\n");
+        stringBuilder.append("\t\t\t\t\t\t<ProjectViewState Version=\"1\" Index=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t\t\t<First>3625b009-0f43-4db8-8f24-6be33ebbaa5f</First>\n");
+        stringBuilder.append("\t\t\t\t\t\t\t<Second ObjectRef=\"2\"/>\n");
+        stringBuilder.append("\t\t\t\t\t\t</ProjectViewState>\n");
+        stringBuilder.append("\t\t\t\t\t</ProjectViewStates>\n");
 
-        int column_index_max_exclu = 56;
+        stringBuilder.append(this.toXMLProjectViewState(1, 3, "361ff028-e258-4162-a70b-ddea24afb013", "00000000-0000-0000-0000-000000000000", "0", "1"));
+        stringBuilder.append(this.toXMLProjectViewState(2, 4, "3625b009-0f43-4db8-8f24-6be33ebbaa5f", "361ff028-e258-4162-a70b-ddea24afb013", "1", "200"));
+
+        int columnIndexMaxExclu = 56;
         int delta = 5;
 
-        this.ColumnList(writer, 3, column_index_max_exclu, delta);
-        this.ColumnList(writer, 4, column_index_max_exclu, column_index_max_exclu + delta);
+        stringBuilder.append(this.toXMLColumnList(3, columnIndexMaxExclu, delta));
+        stringBuilder.append(this.toXMLColumnList(4, columnIndexMaxExclu, columnIndexMaxExclu + delta));
 
-        List<Column> liste_column = new ArrayList<Column>();
+        List<Column> listeColumn = new ArrayList<Column>();
 
-        int object_id = 4;
+        int objectId = 4;
 
-        liste_column.add(new LabelColumn(
-                ++object_id,
+        listeColumn.add(new LabelColumn(
+                ++objectId,
                 "Libellé",
                 "Column.PropertyText.Label",
                 17,
@@ -279,8 +287,8 @@ public final class AdobePremiereProject {
                 26
         ));
 
-        liste_column.add(new SelectedItemsColumn(
-                ++object_id,
+        listeColumn.add(new SelectedItemsColumn(
+                ++objectId,
                 "Sélectionné(s)",
                 "Column.PropertyText.SelectedItems",
                 0,
@@ -289,8 +297,8 @@ public final class AdobePremiereProject {
                 26
         ));
 
-        liste_column.add(new NameColumn(
-                ++object_id,
+        listeColumn.add(new NameColumn(
+                ++objectId,
                 "Nom",
                 "Column.Intrinsic.Name",
                 0,
@@ -299,8 +307,8 @@ public final class AdobePremiereProject {
                 200
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Type de média",
                 "Column.Intrinsic.MediaType",
                 23,
@@ -309,8 +317,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Fréquence d'images",
                 "Column.Intrinsic.MediaTimebase",
                 22,
@@ -319,8 +327,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Début du média",
                 "Column.Intrinsic.MediaStart",
                 21,
@@ -329,8 +337,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Fin du média",
                 "Column.Intrinsic.MediaEnd",
                 20,
@@ -339,8 +347,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée du média",
                 "Column.Intrinsic.MediaDuration",
                 19,
@@ -349,8 +357,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point d'entrée vidéo",
                 "Column.Intrinsic.VideoInPoint",
                 35,
@@ -359,8 +367,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point de sortie vidéo",
                 "Column.Intrinsic.VideoOutPoint",
                 36,
@@ -369,8 +377,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée vidéo",
                 "Column.Intrinsic.VideoDuration",
                 33,
@@ -379,8 +387,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point d'entrée audio",
                 "Column.Intrinsic.AudioInPoint",
                 3,
@@ -389,8 +397,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point de sortie audio",
                 "Column.Intrinsic.AudioOutPoint",
                 4,
@@ -399,8 +407,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée audio",
                 "Column.Intrinsic.AudioDuration",
                 1,
@@ -409,8 +417,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Début du sous-élément",
                 "Column.Intrinsic.SubclipStart",
                 39,
@@ -419,8 +427,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Fin du sous-élément",
                 "Column.Intrinsic.SubclipEnd",
                 40,
@@ -429,8 +437,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée du sous-élément",
                 "Column.Intrinsic.SubclipDuration",
                 41,
@@ -439,8 +447,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Infos vidéo",
                 "Column.Intrinsic.VideoInfo",
                 34,
@@ -449,8 +457,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Infos audio",
                 "Column.Intrinsic.AudioInfo",
                 2,
@@ -459,8 +467,8 @@ public final class AdobePremiereProject {
                 150
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Utilisation vidéo",
                 "Column.Intrinsic.VideoUsage",
                 38,
@@ -469,8 +477,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Utilisation audio",
                 "Column.Intrinsic.AudioUsage",
                 6,
@@ -479,8 +487,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom de la bande",
                 "Column.Intrinsic.TapeName",
                 30,
@@ -489,8 +497,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Description",
                 "Column.PropertyText.Description",
                 15,
@@ -499,8 +507,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Commentaire",
                 "Column.PropertyText.Comment",
                 10,
@@ -509,8 +517,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Remarque",
                 "Column.Intrinsic.LogNote",
                 18,
@@ -519,8 +527,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Chemin d'accès du média",
                 "Column.Intrinsic.FilePath",
                 16,
@@ -529,8 +537,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new CaptureSettingsColumn(
-                ++object_id,
+        listeColumn.add(new CaptureSettingsColumn(
+                ++objectId,
                 "Réglages d'acquisition",
                 "Column.PropertyText.CaptureSettings",
                 0,
@@ -539,8 +547,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Etat",
                 "Column.PropertyText.Status",
                 29,
@@ -549,8 +557,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Propriétés off-line",
                 "Column.PropertyText.OfflineProperties",
                 25,
@@ -559,8 +567,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Nom du fichier média",
                 "Column.Intrinsic.FileName",
                 58,
@@ -569,8 +577,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Scène",
                 "Column.PropertyText.Scene",
                 27,
@@ -579,8 +587,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Plan",
                 "Column.PropertyText.Shot",
                 28,
@@ -589,8 +597,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Client",
                 "Column.PropertyText.Client",
                 9,
@@ -599,8 +607,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new BoolPropertyColumn(
-                ++object_id,
+        listeColumn.add(new BoolPropertyColumn(
+                ++objectId,
                 "Bon(ne)",
                 "Column.PropertyBool.Good",
                 0,
@@ -611,8 +619,8 @@ public final class AdobePremiereProject {
                 "true"
         ));
 
-        liste_column.add(new BoolPropertyColumn(
-                ++object_id,
+        listeColumn.add(new BoolPropertyColumn(
+                ++objectId,
                 "Masquer",
                 "Column.PropertyBool.Hide",
                 0,
@@ -623,8 +631,8 @@ public final class AdobePremiereProject {
                 "true"
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Code temporel sonore",
                 "Column.Intrinsic.SoundTimeCode",
                 42,
@@ -633,8 +641,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Déroul. sonore",
                 "Column.PropertyText.SoundRoll",
                 43,
@@ -643,8 +651,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule",
                 "Column.PropertyText.FilmCameraRoll",
                 47,
@@ -653,8 +661,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule quotidienne",
                 "Column.PropertyText.FilmDailyRoll",
                 48,
@@ -663,8 +671,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule labo",
                 "Column.PropertyText.FilmLabRoll",
                 49,
@@ -673,8 +681,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Code d’identification",
                 "Column.PropertyText.FilmKeycode",
                 50,
@@ -683,8 +691,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Décalage de synchronisation",
                 "Column.PropertyText.SyncOffset",
                 44,
@@ -693,8 +701,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Codec vidéo",
                 "Column.PropertyText.Codec",
                 45,
@@ -703,8 +711,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Ordre des trames",
                 "Column.PropertyText.FieldOrder",
                 46,
@@ -713,8 +721,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Doublure",
                 "Column.PropertyText.Proxy",
                 51,
@@ -723,8 +731,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Projet verrouillé",
                 "Column.PropertyText.BinLocked",
                 52,
@@ -733,8 +741,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "ASC_SOP",
                 "Column.PropertyText.ASCSOP",
                 53,
@@ -743,8 +751,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "ASC_SAT",
                 "Column.PropertyText.ASCSAT",
                 54,
@@ -753,8 +761,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT",
                 "Column.PropertyText.Lut",
                 55,
@@ -763,8 +771,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT1",
                 "Column.PropertyText.Lut1",
                 56,
@@ -773,8 +781,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT2",
                 "Column.PropertyText.Lut2",
                 57,
@@ -783,8 +791,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom du fichier vidéo d’origine",
                 "Column.PropertyText.OriginalVideoFileName",
                 59,
@@ -793,8 +801,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom du fichier audio d’origine",
                 "Column.PropertyText.OriginalAudioFileName",
                 60,
@@ -803,8 +811,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Chemin d’accès au fichier de média de doublure",
                 "Column.Intrinsic.ProxyFilePath",
                 37,
@@ -813,8 +821,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Nom du fichier de média de doublure",
                 "Column.Intrinsic.ProxyFileName",
                 61,
@@ -823,8 +831,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Statut de la transcription",
                 "Column.Intrinsic.TranscriptStatus",
                 63,
@@ -833,8 +841,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new LabelColumn(
-                ++object_id,
+        listeColumn.add(new LabelColumn(
+                ++objectId,
                 "Libellé",
                 "Column.PropertyText.Label",
                 17,
@@ -843,8 +851,8 @@ public final class AdobePremiereProject {
                 26
         ));
 
-        liste_column.add(new SelectedItemsColumn(
-                ++object_id,
+        listeColumn.add(new SelectedItemsColumn(
+                ++objectId,
                 "Sélectionné(s)",
                 "Column.PropertyText.SelectedItems",
                 0,
@@ -853,8 +861,8 @@ public final class AdobePremiereProject {
                 26
         ));
 
-        liste_column.add(new NameColumn(
-                ++object_id,
+        listeColumn.add(new NameColumn(
+                ++objectId,
                 "Nom",
                 "Column.Intrinsic.Name",
                 0,
@@ -863,8 +871,8 @@ public final class AdobePremiereProject {
                 200
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Type de média",
                 "Column.Intrinsic.MediaType",
                 23,
@@ -873,8 +881,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Fréquence d'images",
                 "Column.Intrinsic.MediaTimebase",
                 22,
@@ -883,8 +891,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Début du média",
                 "Column.Intrinsic.MediaStart",
                 21,
@@ -893,8 +901,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Fin du média",
                 "Column.Intrinsic.MediaEnd",
                 20,
@@ -903,8 +911,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée du média",
                 "Column.Intrinsic.MediaDuration",
                 19,
@@ -913,8 +921,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point d'entrée vidéo",
                 "Column.Intrinsic.VideoInPoint",
                 35,
@@ -923,8 +931,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point de sortie vidéo",
                 "Column.Intrinsic.VideoOutPoint",
                 36,
@@ -933,8 +941,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée vidéo",
                 "Column.Intrinsic.VideoDuration",
                 33,
@@ -943,8 +951,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point d'entrée audio",
                 "Column.Intrinsic.AudioInPoint",
                 3,
@@ -953,8 +961,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Point de sortie audio",
                 "Column.Intrinsic.AudioOutPoint",
                 4,
@@ -963,8 +971,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée audio",
                 "Column.Intrinsic.AudioDuration",
                 1,
@@ -973,8 +981,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Début du sous-élément",
                 "Column.Intrinsic.SubclipStart",
                 39,
@@ -983,8 +991,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Fin du sous-élément",
                 "Column.Intrinsic.SubclipEnd",
                 40,
@@ -993,8 +1001,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Durée du sous-élément",
                 "Column.Intrinsic.SubclipDuration",
                 41,
@@ -1003,8 +1011,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Infos vidéo",
                 "Column.Intrinsic.VideoInfo",
                 34,
@@ -1013,8 +1021,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Infos audio",
                 "Column.Intrinsic.AudioInfo",
                 2,
@@ -1023,8 +1031,8 @@ public final class AdobePremiereProject {
                 150
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Utilisation vidéo",
                 "Column.Intrinsic.VideoUsage",
                 38,
@@ -1033,8 +1041,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Utilisation audio",
                 "Column.Intrinsic.AudioUsage",
                 6,
@@ -1043,8 +1051,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom de la bande",
                 "Column.Intrinsic.TapeName",
                 30,
@@ -1053,8 +1061,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Description",
                 "Column.PropertyText.Description",
                 15,
@@ -1063,8 +1071,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Commentaire",
                 "Column.PropertyText.Comment",
                 10,
@@ -1073,8 +1081,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Remarque",
                 "Column.Intrinsic.LogNote",
                 18,
@@ -1083,8 +1091,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Chemin d'accès du média",
                 "Column.Intrinsic.FilePath",
                 16,
@@ -1093,8 +1101,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new CaptureSettingsColumn(
-                ++object_id,
+        listeColumn.add(new CaptureSettingsColumn(
+                ++objectId,
                 "Réglages d'acquisition",
                 "Column.PropertyText.CaptureSettings",
                 0,
@@ -1103,8 +1111,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Etat",
                 "Column.PropertyText.Status",
                 29,
@@ -1113,8 +1121,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Propriétés off-line",
                 "Column.PropertyText.OfflineProperties",
                 25,
@@ -1123,8 +1131,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Nom du fichier média",
                 "Column.Intrinsic.FileName",
                 58,
@@ -1133,8 +1141,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Scène",
                 "Column.PropertyText.Scene",
                 27,
@@ -1143,8 +1151,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Plan",
                 "Column.PropertyText.Shot",
                 28,
@@ -1153,8 +1161,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Client",
                 "Column.PropertyText.Client",
                 9,
@@ -1163,8 +1171,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new BoolPropertyColumn(
-                ++object_id,
+        listeColumn.add(new BoolPropertyColumn(
+                ++objectId,
                 "Bon(ne)",
                 "Column.PropertyBool.Good",
                 0,
@@ -1175,8 +1183,8 @@ public final class AdobePremiereProject {
                 "true"
         ));
 
-        liste_column.add(new BoolPropertyColumn(
-                ++object_id,
+        listeColumn.add(new BoolPropertyColumn(
+                ++objectId,
                 "Masquer",
                 "Column.PropertyBool.Hide",
                 0,
@@ -1187,8 +1195,8 @@ public final class AdobePremiereProject {
                 "true"
         ));
 
-        liste_column.add(new TimecodeColumn(
-                ++object_id,
+        listeColumn.add(new TimecodeColumn(
+                ++objectId,
                 "Code temporel sonore",
                 "Column.Intrinsic.SoundTimeCode",
                 42,
@@ -1197,8 +1205,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Déroul. sonore",
                 "Column.PropertyText.SoundRoll",
                 43,
@@ -1207,8 +1215,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule",
                 "Column.PropertyText.FilmCameraRoll",
                 47,
@@ -1217,8 +1225,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule quotidienne",
                 "Column.PropertyText.FilmDailyRoll",
                 48,
@@ -1227,8 +1235,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Pellicule labo",
                 "Column.PropertyText.FilmLabRoll",
                 49,
@@ -1237,8 +1245,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Code d’identification",
                 "Column.PropertyText.FilmKeycode",
                 50,
@@ -1247,8 +1255,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Décalage de synchronisation",
                 "Column.PropertyText.SyncOffset",
                 44,
@@ -1257,8 +1265,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Codec vidéo",
                 "Column.PropertyText.Codec",
                 45,
@@ -1267,8 +1275,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Ordre des trames",
                 "Column.PropertyText.FieldOrder",
                 46,
@@ -1277,8 +1285,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Doublure",
                 "Column.PropertyText.Proxy",
                 51,
@@ -1287,8 +1295,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Projet verrouillé",
                 "Column.PropertyText.BinLocked",
                 52,
@@ -1297,8 +1305,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "ASC_SOP",
                 "Column.PropertyText.ASCSOP",
                 53,
@@ -1307,8 +1315,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "ASC_SAT",
                 "Column.PropertyText.ASCSAT",
                 54,
@@ -1317,8 +1325,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT",
                 "Column.PropertyText.Lut",
                 55,
@@ -1327,8 +1335,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT1",
                 "Column.PropertyText.Lut1",
                 56,
@@ -1337,8 +1345,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "LUT2",
                 "Column.PropertyText.Lut2",
                 57,
@@ -1347,8 +1355,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom du fichier vidéo d’origine",
                 "Column.PropertyText.OriginalVideoFileName",
                 59,
@@ -1357,8 +1365,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new EditTextColumn(
-                ++object_id,
+        listeColumn.add(new EditTextColumn(
+                ++objectId,
                 "Nom du fichier audio d’origine",
                 "Column.PropertyText.OriginalAudioFileName",
                 60,
@@ -1367,8 +1375,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Chemin d’accès au fichier de média de doublure",
                 "Column.Intrinsic.ProxyFilePath",
                 37,
@@ -1377,8 +1385,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Nom du fichier de média de doublure",
                 "Column.Intrinsic.ProxyFileName",
                 61,
@@ -1387,8 +1395,8 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        liste_column.add(new StringColumn(
-                ++object_id,
+        listeColumn.add(new StringColumn(
+                ++objectId,
                 "Statut de la transcription",
                 "Column.Intrinsic.TranscriptStatus",
                 63,
@@ -1397,393 +1405,393 @@ public final class AdobePremiereProject {
                 100
         ));
 
-        for (Column column : liste_column) {
-            String nom_classe_column = column.getClass().getName();
-
-            if (nom_classe_column.equals(CaptureSettingsColumn.class.getName())) {
-                ((CaptureSettingsColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(EditTextColumn.class.getName())) {
-                ((EditTextColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(LabelColumn.class.getName())) {
-                ((LabelColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(SelectedItemsColumn.class.getName())) {
-                ((SelectedItemsColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(NameColumn.class.getName())) {
-                ((NameColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(StringColumn.class.getName())) {
-                ((StringColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(TimecodeColumn.class.getName())) {
-                ((TimecodeColumn) column).toXML(writer);
-            } else if (nom_classe_column.equals(BoolPropertyColumn.class.getName())) {
-                ((BoolPropertyColumn) column).toXML(writer);
+        for (Column column : listeColumn) {
+            if (column instanceof CaptureSettingsColumn captureSettingsColumn) {
+                stringBuilder.append(captureSettingsColumn.toXML());
+            } else if (column instanceof EditTextColumn editTextColumn) {
+                stringBuilder.append(editTextColumn.toXML());
+            } else if (column instanceof LabelColumn labelColumn) {
+                stringBuilder.append(labelColumn.toXML());
+            } else if (column instanceof SelectedItemsColumn selectedItemsColumn) {
+                stringBuilder.append(selectedItemsColumn.toXML());
+            } else if (column instanceof NameColumn nameColumn) {
+                stringBuilder.append(nameColumn.toXML());
+            } else if (column instanceof StringColumn stringColumn) {
+                stringBuilder.append(stringColumn.toXML());
+            } else if (column instanceof TimecodeColumn timecodeColumn) {
+                stringBuilder.append(timecodeColumn.toXML());
+            } else if (column instanceof BoolPropertyColumn boolPropertyColumn) {
+                stringBuilder.append(boolPropertyColumn.toXML());
             } else {
-                throw new AdobePremiereProjectException("Pas de : '" + nom_classe_column + "'.");
+                throw new AdobePremiereProjectException("Pas de : '" + column.getClass().getName() + "'.");
             }
         }
 
-        writer.append("\t\t\t\t</ProjectViewState.List>\n");
-        writer.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
-        writer.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
-        writer.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
-        writer.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
+        stringBuilder.append("\t\t\t\t</ProjectViewState.List>\n");
+        stringBuilder.append("\t\t\t\t<AM.PJShowWellState>0</AM.PJShowWellState>\n");
+        stringBuilder.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>Accélération GPU Mercury Playback Engine (Metal)</BE.Prefs.AcceleratedRenderer.LastUsedDisplayName>\n");
+        stringBuilder.append("\t\t\t\t<BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.AcceleratedRenderer.LastUsedIdentifier>\n");
+        stringBuilder.append("\t\t\t\t<BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>6ed1497e-17ad-4a5b-846f-52bb81e20104</BE.Prefs.kPrefsAcceleratedRenderer.OverridenIdentifier>\n");
 
         if (Title.getTitleNumber() > 1) {
-            writer.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
+            stringBuilder.append("\t\t\t\t<FE.Prefs.Titler.TitleCounter>" + Title.getTitleNumber() + "</FE.Prefs.Titler.TitleCounter>\n");
         }
 
-        writer.append("\t\t\t\t<MZ.BuildVersion.Created>24.0.0x58 - 22-01-24 12:03:57</MZ.BuildVersion.Created>\n");
-        writer.append("\t\t\t\t<MZ.BuildVersion.Modified>24.0.0x58 - 22-01-24 12:03:59</MZ.BuildVersion.Modified>\n");
+        stringBuilder.append("\t\t\t\t<MZ.BuildVersion.Created>24.0.0x58 - 22-01-24 12:03:57</MZ.BuildVersion.Created>\n");
+        stringBuilder.append("\t\t\t\t<MZ.BuildVersion.Modified>24.0.0x58 - 22-01-24 12:03:59</MZ.BuildVersion.Modified>\n");
 
         // S'il y a une séquence dans le projet.
         if (Sequence.getSequenceNumber() > 1) {
-            writer.append("\t\t\t\t<MZ.NextSequenceIndex>" + (Sequence.getSequenceNumber()) + "</MZ.NextSequenceIndex>\n");
-            writer.append("\t\t\t\t<MZ.PrefixKey.OpenSequenceGuidList.1>9d8a2607-057b-47be-8e25-56261a940524</MZ.PrefixKey.OpenSequenceGuidList.1>\n");
+            stringBuilder.append("\t\t\t\t<MZ.NextSequenceIndex>" + (Sequence.getSequenceNumber()) + "</MZ.NextSequenceIndex>\n");
+            stringBuilder.append("\t\t\t\t<MZ.PrefixKey.OpenSequenceGuidList.1>9d8a2607-057b-47be-8e25-56261a940524</MZ.PrefixKey.OpenSequenceGuidList.1>\n");
         }
 
-        writer.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
-        writer.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
-        writer.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspace_name + "</MZ.Project.WorkspaceName>\n");
-        writer.append("\t\t\t\t<ProjectViewState.Version>2</ProjectViewState.Version>\n");
-        writer.append("\t\t\t\t<TL.PJSnappingState>1</TL.PJSnappingState>\n");
-        writer.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>/Users/macdevpro/Desktop/Projet-example.prproj</project.settings.lastknowngoodprojectpath>\n");
-        writer.append("\t\t\t</Properties>\n");
-        writer.append("\t\t</Node>\n");
-        writer.append("\t\t<RootProjectItem ObjectURef=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\"/>\n");
-        writer.append("\t\t<ProjectSettings ObjectRef=\"3\"/>\n");
-        writer.append("\t\t<MovieCompileSettings ObjectRef=\"4\"/>\n");
-        writer.append("\t\t<StillCompileSettings ObjectRef=\"5\"/>\n");
-        writer.append("\t\t<AudioCompileSettings ObjectRef=\"6\"/>\n");
-        writer.append("\t\t<CustomCompileSettings ObjectRef=\"7\"/>\n");
-        writer.append("\t\t<VideoPreviewCompileSettings ObjectRef=\"8\"/>\n");
-        writer.append("\t\t<ScratchDiskSettings ObjectRef=\"9\"/>\n");
-        writer.append("\t\t<IngestSettings ObjectRef=\"10\"/>\n");
-        writer.append("\t\t<ProjectWorkspace ObjectRef=\"11\"/>\n");
-        writer.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
-        writer.append("\t</Project>\n");
-        writer.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
-        writer.append("\t\t<ProjectItem Version=\"1\">\n");
-        writer.append("\t\t\t<Node Version=\"1\">\n");
-        writer.append("\t\t\t\t<Properties Version=\"1\">\n");
-        writer.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
-        writer.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
+        stringBuilder.append("\t\t\t\t<MZ.Project.ApplicationID>Pro</MZ.Project.ApplicationID>\n");
+        stringBuilder.append("\t\t\t\t<MZ.Project.GUID>91b0c78e-e019-47e0-94c4-d0581286c3ab</MZ.Project.GUID>\n");
+        stringBuilder.append("\t\t\t\t<MZ.Project.WorkspaceName>" + workspaceName + "</MZ.Project.WorkspaceName>\n");
+        stringBuilder.append("\t\t\t\t<ProjectViewState.Version>2</ProjectViewState.Version>\n");
+        stringBuilder.append("\t\t\t\t<TL.PJSnappingState>1</TL.PJSnappingState>\n");
+        stringBuilder.append("\t\t\t\t<project.settings.lastknowngoodprojectpath>/Users/macdevpro/Desktop/Projet-example.prproj</project.settings.lastknowngoodprojectpath>\n");
+        stringBuilder.append("\t\t\t</Properties>\n");
+        stringBuilder.append("\t\t</Node>\n");
+        stringBuilder.append("\t\t<RootProjectItem ObjectURef=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\"/>\n");
+        stringBuilder.append("\t\t<ProjectSettings ObjectRef=\"3\"/>\n");
+        stringBuilder.append("\t\t<MovieCompileSettings ObjectRef=\"4\"/>\n");
+        stringBuilder.append("\t\t<StillCompileSettings ObjectRef=\"5\"/>\n");
+        stringBuilder.append("\t\t<AudioCompileSettings ObjectRef=\"6\"/>\n");
+        stringBuilder.append("\t\t<CustomCompileSettings ObjectRef=\"7\"/>\n");
+        stringBuilder.append("\t\t<VideoPreviewCompileSettings ObjectRef=\"8\"/>\n");
+        stringBuilder.append("\t\t<ScratchDiskSettings ObjectRef=\"9\"/>\n");
+        stringBuilder.append("\t\t<IngestSettings ObjectRef=\"10\"/>\n");
+        stringBuilder.append("\t\t<ProjectWorkspace ObjectRef=\"11\"/>\n");
+        stringBuilder.append("\t\t<NextSequenceID>" + Sequence.getSequenceNumber() + "</NextSequenceID>\n");
+        stringBuilder.append("\t</Project>\n");
+        stringBuilder.append("\t<RootProjectItem ObjectUID=\"ae3aed9b-a494-4f2d-937c-2f513794f0f6\" ClassID=\"1c307a89-9318-47d7-a583-bf2553736543\" Version=\"1\">\n");
+        stringBuilder.append("\t\t<ProjectItem Version=\"1\">\n");
+        stringBuilder.append("\t\t\t<Node Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t<Properties Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t<project.freeform.view.bin.coordinate>{}</project.freeform.view.bin.coordinate>");
+        stringBuilder.append("\t\t\t\t<project.freeform.view.bin.item.zoom>{}</project.freeform.view.bin.item.zoom>");
 
-        writer.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
-        writer.append("\t\t\t\t</Properties>\n");
-        writer.append("\t\t\t\t<ID>1000000</ID>\n");
-        writer.append("\t\t\t</Node>\n");
-        writer.append("\t\t\t<Name>Root Bin</Name>\n");
-        writer.append("\t\t</ProjectItem>\n");
-        writer.append("\t\t<ProjectItemContainer Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t<list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>true</list.view.expanded.state.379921dc_45_03cc_45_4e04_45_8bb9_45_12bf337af0c9>\n");
+        stringBuilder.append("\t\t\t\t</Properties>\n");
+        stringBuilder.append("\t\t\t\t<ID>1000000</ID>\n");
+        stringBuilder.append("\t\t\t</Node>\n");
+        stringBuilder.append("\t\t\t<Name>Root Bin</Name>\n");
+        stringBuilder.append("\t\t</ProjectItem>\n");
+        stringBuilder.append("\t\t<ProjectItemContainer Version=\"1\">\n");
+
+        return stringBuilder.toString();
     }
 
     /**
      * Ecrit la structure du projet, la fin.
-     *
-     * @param writer
      */
-    private void end(@NotNull PrintWriter writer) {
-        writer.append("\t\t</ProjectItemContainer>\n");
-        writer.append("\t</RootProjectItem>\n");
-        writer.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
-        writer.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
-        writer.append("\t\t<AudioCompileSettings ObjectRef=\"15\"/>\n");
-        writer.append("\t\t<CaptureSettings ObjectRef=\"16\"/>\n");
-        writer.append("\t\t<DefaultSequenceSettings ObjectRef=\"17\"/>\n");
-        writer.append("\t\t<EditingModeID>00000000-0000-0000-0000-000000000000</EditingModeID>\n");
-        writer.append("\t\t<PreviewFileFormatID>00000000-0000-0000-0000-000000000000</PreviewFileFormatID>\n");
-        writer.append("\t\t<VideoTimeDisplay>102</VideoTimeDisplay>\n");
-        writer.append("\t\t<VideoTimeDisplayInitial>102</VideoTimeDisplayInitial>\n");
-        writer.append("\t\t<AudioTimeDisplay>200</AudioTimeDisplay>\n");
-        writer.append("\t\t<ActionSafeWidth>10</ActionSafeWidth>\n");
-        writer.append("\t\t<ActionSafeHeight>10</ActionSafeHeight>\n");
-        writer.append("\t\t<TitleSafeWidth>20</TitleSafeWidth>\n");
-        writer.append("\t\t<TitleSafeHeight>20</TitleSafeHeight>\n");
-        writer.append("\t\t<ShouldScaleMedia>false</ShouldScaleMedia>\n");
-        writer.append("\t\t<UsePreviewCache>false</UsePreviewCache>\n");
-        writer.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
-        writer.append("\t</ProjectSettings>\n");
+    private String toXMLEnd() {
+        StringBuilder stringBuilder = new StringBuilder();
 
-        List<CompileSettings> liste_compile_settings = new ArrayList<CompileSettings>();
+        stringBuilder.append("\t\t</ProjectItemContainer>\n");
+        stringBuilder.append("\t</RootProjectItem>\n");
+        stringBuilder.append("\t<ProjectSettings ObjectID=\"3\" ClassID=\"50c16708-a1a1-4d2f-98d5-4e283ae28353\" Version=\"20\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"12\"/>\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"13\"/>\n");
+        stringBuilder.append("\t\t<VideoCompileSettings ObjectRef=\"14\"/>\n");
+        stringBuilder.append("\t\t<AudioCompileSettings ObjectRef=\"15\"/>\n");
+        stringBuilder.append("\t\t<CaptureSettings ObjectRef=\"16\"/>\n");
+        stringBuilder.append("\t\t<DefaultSequenceSettings ObjectRef=\"17\"/>\n");
+        stringBuilder.append("\t\t<EditingModeID>00000000-0000-0000-0000-000000000000</EditingModeID>\n");
+        stringBuilder.append("\t\t<PreviewFileFormatID>00000000-0000-0000-0000-000000000000</PreviewFileFormatID>\n");
+        stringBuilder.append("\t\t<VideoTimeDisplay>102</VideoTimeDisplay>\n");
+        stringBuilder.append("\t\t<VideoTimeDisplayInitial>102</VideoTimeDisplayInitial>\n");
+        stringBuilder.append("\t\t<AudioTimeDisplay>200</AudioTimeDisplay>\n");
+        stringBuilder.append("\t\t<ActionSafeWidth>10</ActionSafeWidth>\n");
+        stringBuilder.append("\t\t<ActionSafeHeight>10</ActionSafeHeight>\n");
+        stringBuilder.append("\t\t<TitleSafeWidth>20</TitleSafeWidth>\n");
+        stringBuilder.append("\t\t<TitleSafeHeight>20</TitleSafeHeight>\n");
+        stringBuilder.append("\t\t<ShouldScaleMedia>false</ShouldScaleMedia>\n");
+        stringBuilder.append("\t\t<UsePreviewCache>false</UsePreviewCache>\n");
+        stringBuilder.append("\t\t<ColorManagementSettings>{\"graphicsWhiteLuminance\":203,\"lutInterpolationMethod\":1}</ColorManagementSettings>\n");
+        stringBuilder.append("\t</ProjectSettings>\n");
 
-        liste_compile_settings.add(new CompileSettings(4, 18, 19));
-        liste_compile_settings.add(new CompileSettings(5, 20, 21));
-        liste_compile_settings.add(new CompileSettings(6, 22, 23));
-        liste_compile_settings.add(new CompileSettings(7, 24, 25));
-        liste_compile_settings.add(new CompileSettings(8, 26, 27));
+        List<CompileSettings> listeCompileSettings = new ArrayList<CompileSettings>();
 
-        for (CompileSettings compile_setting : liste_compile_settings) {
-            compile_setting.toXML(writer);
+        listeCompileSettings.add(new CompileSettings(4, 18, 19));
+        listeCompileSettings.add(new CompileSettings(5, 20, 21));
+        listeCompileSettings.add(new CompileSettings(6, 22, 23));
+        listeCompileSettings.add(new CompileSettings(7, 24, 25));
+        listeCompileSettings.add(new CompileSettings(8, 26, 27));
+
+        for (CompileSettings compileSetting : listeCompileSettings) {
+            stringBuilder.append(compileSetting.toXML());
         }
 
-        String same_as_project = "SameAsProject";
+        String sameAsProject = "SameAsProject";
 
-        writer.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
-        writer.append("\t\t<CapsuleMediaLocation0>" + same_as_project + "</CapsuleMediaLocation0>\n");
-        writer.append("\t\t<CCLibrariesLocation0>" + same_as_project + "</CCLibrariesLocation0>\n");
-        writer.append("\t\t<AutoSaveLocation0>" + same_as_project + "</AutoSaveLocation0>\n");
-        writer.append("\t\t<TransferMediaLocation0>" + same_as_project + "</TransferMediaLocation0>\n");
-        writer.append("\t\t<DVDEncodingLocation0>" + same_as_project + "</DVDEncodingLocation0>\n");
-        writer.append("\t\t<AudioPreviewLocation0>" + same_as_project + "</AudioPreviewLocation0>\n");
-        writer.append("\t\t<VideoPreviewLocation0>" + same_as_project + "</VideoPreviewLocation0>\n");
-        writer.append("\t\t<CapturedAudioLocation0>" + same_as_project + "</CapturedAudioLocation0>\n");
-        writer.append("\t\t<CapturedVideoLocation0>" + same_as_project + "</CapturedVideoLocation0>\n");
-        writer.append("\t</ScratchDiskSettings>\n");
+        stringBuilder.append("\t<ScratchDiskSettings ObjectID=\"9\" ClassID=\"4c6ed82b-a81c-4df1-8bd0-750504c4b560\" Version=\"4\">\n");
+        stringBuilder.append("\t\t<CapsuleMediaLocation0>" + sameAsProject + "</CapsuleMediaLocation0>\n");
+        stringBuilder.append("\t\t<CCLibrariesLocation0>" + sameAsProject + "</CCLibrariesLocation0>\n");
+        stringBuilder.append("\t\t<AutoSaveLocation0>" + sameAsProject + "</AutoSaveLocation0>\n");
+        stringBuilder.append("\t\t<TransferMediaLocation0>" + sameAsProject + "</TransferMediaLocation0>\n");
+        stringBuilder.append("\t\t<DVDEncodingLocation0>" + sameAsProject + "</DVDEncodingLocation0>\n");
+        stringBuilder.append("\t\t<AudioPreviewLocation0>" + sameAsProject + "</AudioPreviewLocation0>\n");
+        stringBuilder.append("\t\t<VideoPreviewLocation0>" + sameAsProject + "</VideoPreviewLocation0>\n");
+        stringBuilder.append("\t\t<CapturedAudioLocation0>" + sameAsProject + "</CapturedAudioLocation0>\n");
+        stringBuilder.append("\t\t<CapturedVideoLocation0>" + sameAsProject + "</CapturedVideoLocation0>\n");
+        stringBuilder.append("\t</ScratchDiskSettings>\n");
 
-        writer.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
-        writer.append("\t\t<Enabled>false</Enabled>\n");
-        writer.append("\t\t<Action>copy</Action>\n");
-        writer.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
-        writer.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
-        writer.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
-        writer.append("\t</IngestSettings>\n");
+        stringBuilder.append("\t<IngestSettings ObjectID=\"10\" ClassID=\"2db8f76b-2c37-48ee-925d-9a4f7278152d\" Version=\"1\">\n");
+        stringBuilder.append("\t\t<Enabled>false</Enabled>\n");
+        stringBuilder.append("\t\t<Action>copy</Action>\n");
+        stringBuilder.append("\t\t<PresetPath>/Applications/Adobe Premiere Pro 2023/Adobe Premiere Pro 2023.app/Contents/Settings/IngestPresets/Copy/Copy With MD5 Verification.epr</PresetPath>\n");
+        stringBuilder.append("\t\t<CopyDestination>SameAsProject</CopyDestination>\n");
+        stringBuilder.append("\t\t<MachineID>6e386481-14b7-43bb-890d-ae81def9e5ff</MachineID>\n");
+        stringBuilder.append("\t</IngestSettings>\n");
 
-        writer.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
-        writer.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
-        writer.append("\t</WorkspaceSettings>\n");
+        stringBuilder.append("\t<WorkspaceSettings ObjectID=\"11\" ClassID=\"c4372273-e1aa-4683-98aa-a2ceadf3066c\" Version=\"1\">\n");
+        stringBuilder.append("\t\t<WorkspaceName>Montage</WorkspaceName>\n");
+        stringBuilder.append("\t</WorkspaceSettings>\n");
 
         // Ajoute les dossiers de niveau 0 = ceux à la racine du projet.
-        binProject(writer, 0);
+        stringBuilder.append(this.toXMLBinProject(0));
 
-        writer.append("\t<VideoSettings ObjectID=\"12\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"12\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"13\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"13\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"14\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"28\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"14\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"28\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"15\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"29\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
-        writer.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
-        writer.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
-        writer.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
-        writer.append("\t\t<VideoFrameRate>8475667200</VideoFrameRate>\n");
-        writer.append("\t\t<VideoFrameSize>0,0,720,480</VideoFrameSize>\n");
-        writer.append("\t\t<VideoCompressorFourCC>0</VideoCompressorFourCC>\n");
-        writer.append("\t\t<AudioCompressorFourCC>1380013856</AudioCompressorFourCC>\n");
-        writer.append("\t\t<AudioCompressorDisplayName>Non compressé</AudioCompressorDisplayName>\n");
-        writer.append("\t\t<AudioFrameRate>7938000</AudioFrameRate>\n");
-        writer.append("\t\t<AudioSampleType>3</AudioSampleType>\n");
-        writer.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
-        writer.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
-        writer.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
-        writer.append("\t</CaptureSettings>\n");
+        stringBuilder.append("\t<CaptureSettings ObjectID=\"16\" ClassID=\"328c2aa2-47f9-4211-805b-b6a6dbd4ca29\" Version=\"10\">\n");
+        stringBuilder.append("\t\t<RecordModuleDisplayName>HDV</RecordModuleDisplayName>\n");
+        stringBuilder.append("\t\t<SupportedFileExtension>avi</SupportedFileExtension>\n");
+        stringBuilder.append("\t\t<VideoFrameRate>8475667200</VideoFrameRate>\n");
+        stringBuilder.append("\t\t<VideoFrameSize>0,0,720,480</VideoFrameSize>\n");
+        stringBuilder.append("\t\t<VideoCompressorFourCC>0</VideoCompressorFourCC>\n");
+        stringBuilder.append("\t\t<AudioCompressorFourCC>1380013856</AudioCompressorFourCC>\n");
+        stringBuilder.append("\t\t<AudioCompressorDisplayName>Non compressé</AudioCompressorDisplayName>\n");
+        stringBuilder.append("\t\t<AudioFrameRate>7938000</AudioFrameRate>\n");
+        stringBuilder.append("\t\t<AudioSampleType>3</AudioSampleType>\n");
+        stringBuilder.append("\t\t<AudioChannelType>1</AudioChannelType>\n");
+        stringBuilder.append("\t\t<AbortCaptureOnDroppedFrames>false</AbortCaptureOnDroppedFrames>\n");
+        stringBuilder.append("\t\t<RecorderID>ae351743-b529-451e-a2d4-9ccf1ad8d8b6</RecorderID>\n");
+        stringBuilder.append("\t</CaptureSettings>\n");
 
-        writer.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
-        writer.append("\t\t<TotalVideoTracks>1</TotalVideoTracks>\n");
-        writer.append("\t\t<DefaultAudioStandardMonoTracks>0</DefaultAudioStandardMonoTracks>\n");
-        writer.append("\t\t<DefaultAudioStandardStereoTracks>1</DefaultAudioStandardStereoTracks>\n");
-        writer.append("\t\t<DefaultAudioStandard51Tracks>0</DefaultAudioStandard51Tracks>\n");
-        writer.append("\t\t<DefaultAudioSubmixMonoTracks>0</DefaultAudioSubmixMonoTracks>\n");
-        writer.append("\t\t<DefaultAudioSubmixStereoTracks>0</DefaultAudioSubmixStereoTracks>\n");
-        writer.append("\t\t<DefaultAudioSubmix51Tracks>0</DefaultAudioSubmix51Tracks>\n");
-        writer.append("\t</DefaultSequenceSettings>\n");
+        stringBuilder.append("\t<DefaultSequenceSettings ObjectID=\"17\" ClassID=\"567bdf53-d6d9-4d61-b2f1-f4834bebea9b\" Version=\"2\">\n");
+        stringBuilder.append("\t\t<TotalVideoTracks>1</TotalVideoTracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioStandardMonoTracks>0</DefaultAudioStandardMonoTracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioStandardStereoTracks>1</DefaultAudioStandardStereoTracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioStandard51Tracks>0</DefaultAudioStandard51Tracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioSubmixMonoTracks>0</DefaultAudioSubmixMonoTracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioSubmixStereoTracks>0</DefaultAudioSubmixStereoTracks>\n");
+        stringBuilder.append("\t\t<DefaultAudioSubmix51Tracks>0</DefaultAudioSubmix51Tracks>\n");
+        stringBuilder.append("\t</DefaultSequenceSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"18\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"30\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"18\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"30\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"19\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"31\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"32\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"20\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"32\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"21\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"33\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"34\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"22\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"34\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"23\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"35\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
 
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"36\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"24\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"36\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"25\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"37\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
-        writer.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
-        writer.append("\t\t<VideoSettings ObjectRef=\"38\"/>\n");
-        writer.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
-        writer.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
-        writer.append("\t\t<Compressor>1685288560</Compressor>\n");
-        writer.append("\t\t<Depth>24</Depth>\n");
-        writer.append("\t\t<Aspect43>false</Aspect43>\n");
-        writer.append("\t\t<Quality>100</Quality>\n");
-        writer.append("\t\t<UseDataRate>false</UseDataRate>\n");
-        writer.append("\t\t<DataRate>3500</DataRate>\n");
-        writer.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
-        writer.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
-        writer.append("\t\t<Deinterlace>false</Deinterlace>\n");
-        writer.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
-        writer.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
-        writer.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
-        writer.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
-        writer.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
-        writer.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
-        writer.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
-        writer.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
-        writer.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
-        writer.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
-        writer.append("\t\t<RenderDepth>0</RenderDepth>\n");
-        writer.append("\t</VideoCompileSettings>\n");
+        stringBuilder.append("\t<VideoCompileSettings ObjectID=\"26\" ClassID=\"db372db5-7de2-4d3c-98ae-f42659d77b22\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<VideoSettings ObjectRef=\"38\"/>\n");
+        stringBuilder.append("\t\t<VideoCompilerClassIDFourCC>1061109567</VideoCompilerClassIDFourCC>\n");
+        stringBuilder.append("\t\t<VideoFileTypeFourCC>1096173910</VideoFileTypeFourCC>\n");
+        stringBuilder.append("\t\t<Compressor>1685288560</Compressor>\n");
+        stringBuilder.append("\t\t<Depth>24</Depth>\n");
+        stringBuilder.append("\t\t<Aspect43>false</Aspect43>\n");
+        stringBuilder.append("\t\t<Quality>100</Quality>\n");
+        stringBuilder.append("\t\t<UseDataRate>false</UseDataRate>\n");
+        stringBuilder.append("\t\t<DataRate>3500</DataRate>\n");
+        stringBuilder.append("\t\t<ForceRecompress>true</ForceRecompress>\n");
+        stringBuilder.append("\t\t<ForceRecompressValue>2</ForceRecompressValue>\n");
+        stringBuilder.append("\t\t<Deinterlace>false</Deinterlace>\n");
+        stringBuilder.append("\t\t<IgnoreVideoFilters>false</IgnoreVideoFilters>\n");
+        stringBuilder.append("\t\t<OptimizeStills>false</OptimizeStills>\n");
+        stringBuilder.append("\t\t<FramesAtMarkers>false</FramesAtMarkers>\n");
+        stringBuilder.append("\t\t<RealTimePreview>true</RealTimePreview>\n");
+        stringBuilder.append("\t\t<VideoFieldType>0</VideoFieldType>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFrames>false</DoKeyframeEveryNFrames>\n");
+        stringBuilder.append("\t\t<DoKeyframeEveryNFramesValue>0</DoKeyframeEveryNFramesValue>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtMarkers>false</AddKeyframesAtMarkers>\n");
+        stringBuilder.append("\t\t<AddKeyframesAtEdits>false</AddKeyframesAtEdits>\n");
+        stringBuilder.append("\t\t<RelativeFrameSize>1</RelativeFrameSize>\n");
+        stringBuilder.append("\t\t<RenderDepth>0</RenderDepth>\n");
+        stringBuilder.append("\t</VideoCompileSettings>\n");
 
-        writer.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
-        writer.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
-        writer.append("\t\t<SampleType>3</SampleType>\n");
-        writer.append("\t\t<Compressor>1380013856</Compressor>\n");
-        writer.append("\t\t<Interleave>1</Interleave>\n");
-        writer.append("\t</AudioCompileSettings>\n");
+        stringBuilder.append("\t<AudioCompileSettings ObjectID=\"27\" ClassID=\"34b10007-ab6d-49a7-bac5-7b60d919e387\" Version=\"6\">\n");
+        stringBuilder.append("\t\t<AudioSettings ObjectRef=\"39\"/>\n");
+        stringBuilder.append("\t\t<SampleType>3</SampleType>\n");
+        stringBuilder.append("\t\t<Compressor>1380013856</Compressor>\n");
+        stringBuilder.append("\t\t<Interleave>1</Interleave>\n");
+        stringBuilder.append("\t</AudioCompileSettings>\n");
 
         // Ajout les dossier de niveau 1 (sous-dossier).
-        this.binProject(writer, 1);
+        stringBuilder.append(this.toXMLBinProject(1));
 
         String classID = "fb11c33a-b0a9-4465-aa94-b6d5db2628cf";
 
@@ -1791,18 +1799,18 @@ public final class AdobePremiereProject {
         for (Element element : this.elements) {
             // Si c'est une séquence.
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                writer.append("\t<MasterClip ObjectUID=\"" + "ad5bd5cb-4336-473d-a7f2-74386fbfd563" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
-                writer.append("\t\t<LoggingInfo ObjectRef=\"40\"/>\n");
-                writer.append("\t\t<AudioComponentChains Version=\"1\">\n");
-                writer.append("\t\t\t<AudioComponentChain Index=\"0\" ObjectRef=\"41\"/>\n");
-                writer.append("\t\t</AudioComponentChains>\n");
-                writer.append("\t\t<Clips Version=\"1\">\n");
-                writer.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"42\"/>\n");
-                writer.append("\t\t\t<Clip Index=\"1\" ObjectRef=\"43\"/>\n");
-                writer.append("\t\t</Clips>\n");
-                writer.append("\t\t<AudioClipChannelGroups ObjectRef=\"44\"/>\n");
-                writer.append("\t\t<Name>" + element.getName() + "</Name>\n");
-                writer.append("\t</MasterClip>\n");
+                stringBuilder.append("\t<MasterClip ObjectUID=\"" + "ad5bd5cb-4336-473d-a7f2-74386fbfd563" + "\" ClassID=\"" + classID + "\" Version=\"9\">\n");
+                stringBuilder.append("\t\t<LoggingInfo ObjectRef=\"40\"/>\n");
+                stringBuilder.append("\t\t<AudioComponentChains Version=\"1\">\n");
+                stringBuilder.append("\t\t\t<AudioComponentChain Index=\"0\" ObjectRef=\"41\"/>\n");
+                stringBuilder.append("\t\t</AudioComponentChains>\n");
+                stringBuilder.append("\t\t<Clips Version=\"1\">\n");
+                stringBuilder.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"42\"/>\n");
+                stringBuilder.append("\t\t\t<Clip Index=\"1\" ObjectRef=\"43\"/>\n");
+                stringBuilder.append("\t\t</Clips>\n");
+                stringBuilder.append("\t\t<AudioClipChannelGroups ObjectRef=\"44\"/>\n");
+                stringBuilder.append("\t\t<Name>" + element.getName() + "</Name>\n");
+                stringBuilder.append("\t</MasterClip>\n");
             }
         }
 
@@ -1810,137 +1818,137 @@ public final class AdobePremiereProject {
         for (Element element : this.elements) {
             // Si c'est une séquence.
             if (element.getTypeElement() == TypeElement.TITLE) {
-                writer.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
-                writer.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
-                writer.append("\t\t<Clips Version=\"1\">\n");
-                writer.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
-                writer.append("\t\t</Clips>\n");
-                writer.append("\t\t<AudioClipChannelGroups ObjectRef=\"47\"/>\n");
-                writer.append("\t\t<Name>" + element.getName() + "</Name>\n");
-                writer.append("\t</MasterClip>\n");
+                stringBuilder.append("\t<MasterClip ObjectUID=\"8c85bb49-dcaf-4511-aed8-9f6cead61d2a\" ClassID=\"" + classID + "\" Version=\"9\">\n");
+                stringBuilder.append("\t\t<LoggingInfo ObjectRef=\"45\"/>\n");
+                stringBuilder.append("\t\t<Clips Version=\"1\">\n");
+                stringBuilder.append("\t\t\t<Clip Index=\"0\" ObjectRef=\"46\"/>\n");
+                stringBuilder.append("\t\t</Clips>\n");
+                stringBuilder.append("\t\t<AudioClipChannelGroups ObjectRef=\"47\"/>\n");
+                stringBuilder.append("\t\t<Name>" + element.getName() + "</Name>\n");
+                stringBuilder.append("\t</MasterClip>\n");
             }
         }
 
-        writer.append("\t<VideoSettings ObjectID=\"28\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"28\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"29\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"29\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoSettings ObjectID=\"30\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"30\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"31\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"31\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoSettings ObjectID=\"32\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"32\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"33\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"33\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoSettings ObjectID=\"34\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"34\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"35\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"35\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoSettings ObjectID=\"36\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"36\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"37\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"37\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
-        writer.append("\t<VideoSettings ObjectID=\"38\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
-        writer.append("\t\t<FrameRate>8475667200</FrameRate>\n");
-        writer.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
-        writer.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
-        writer.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
-        writer.append("\t</VideoSettings>\n");
+        stringBuilder.append("\t<VideoSettings ObjectID=\"38\" ClassID=\"58474264-30c4-43a2-bba5-dc0812df8a3a\" Version=\"9\">\n");
+        stringBuilder.append("\t\t<FrameRate>8475667200</FrameRate>\n");
+        stringBuilder.append("\t\t<FrameSize>0,0,720,480</FrameSize>\n");
+        stringBuilder.append("\t\t<PixelAspectRatio>10,11</PixelAspectRatio>\n");
+        stringBuilder.append("\t\t<MaximumBitDepth>false</MaximumBitDepth>\n");
+        stringBuilder.append("\t</VideoSettings>\n");
 
-        writer.append("\t<AudioSettings ObjectID=\"39\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
-        writer.append("\t\t<FrameRate>5292000</FrameRate>\n");
-        writer.append("\t\t<ChannelType>1</ChannelType>\n");
-        writer.append("\t</AudioSettings>\n");
+        stringBuilder.append("\t<AudioSettings ObjectID=\"39\" ClassID=\"6baf5521-b132-4634-840e-13cec5bc86a4\" Version=\"7\">\n");
+        stringBuilder.append("\t\t<FrameRate>5292000</FrameRate>\n");
+        stringBuilder.append("\t\t<ChannelType>1</ChannelType>\n");
+        stringBuilder.append("\t</AudioSettings>\n");
 
         // Ajout les éléments de niveau 2.
-        this.binProject(writer, 2);
+        stringBuilder.append(this.toXMLBinProject(2));
 
         // Clip
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).clip(writer);
+                stringBuilder.append(((Sequence) element).toXMLClip());
             }
         }
 
         // Ajout des ClipLoggingInfo.
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).clipLoggingInfo(writer);
+                stringBuilder.append(((Title) element).toXMLClipLoggingInfo());
             }
         }
 
         // AudioSequenceSource
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).audioSequenceSource(writer);
+                stringBuilder.append(((Sequence) element).toXMLAudioSequenceSource());
             }
         }
 
         // VideoMediaSource
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).videoMediaSource(writer);
+                stringBuilder.append(((Title) element).toXMLVideoMediaSource());
             }
         }
 
         // Sequence
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).sequence(writer);
+                stringBuilder.append(((Sequence) element).toXMLSequence());
             }
         }
 
         // Ajout des médias.
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.TITLE) {
-                ((Title) element).media(writer);
+                stringBuilder.append(((Title) element).toXMLMedia());
             }
         }
 
         for (Element element : this.elements) {
             if (element.getTypeElement() == TypeElement.SEQUENCE) {
-                ((Sequence) element).audioTrackGroup(writer);
+                stringBuilder.append(((Sequence) element).toXMLAudioTrackGroup());
             }
         }
 
@@ -1962,8 +1970,10 @@ public final class AdobePremiereProject {
                 ((Sequence) element).videoClip(file);
             }
         }*/
-        writer.append("</PremiereData>\n");
-        writer.append("\n");
+        stringBuilder.append("</PremiereData>\n");
+        stringBuilder.append("\n");
+
+        return stringBuilder.toString();
     }
 
     /**
@@ -1973,14 +1983,8 @@ public final class AdobePremiereProject {
      */
     @NotNull
     @NotEmpty
-    public String[] getVersions() {
-        return new String[]{
-            Version.CC2015.toString(),
-            Version.CC2017.toString(),
-            Version.CC2018.toString(),
-            Version.CC2019.toString(),
-            Version.CC2020.toString()
-        };
+    public Version[] getVersions() {
+        return Version.values();
     }
 
     /**
@@ -1991,30 +1995,30 @@ public final class AdobePremiereProject {
      * @throws AdobePremiereProjectException
      */
     public void downgrade(String version) throws AdobePremiereProjectException {
-        File fichier_tmp = this.getFichierXMLTemporaire();
+        File fichierTmp = this.getFichierXMLTemporaire();
 
         try {
-            ZipFiles.decompressGzipFile(this.fichier, fichier_tmp);
+            ZipFiles.decompressGzipFile(this.fichier, fichierTmp);
 
-            Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichier_tmp);
+            Document xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(fichierTmp);
 
             NodeList list = xml.getDocumentElement().getChildNodes();
 
-            Node node_item;
+            Node nodeItem;
 
             // Récupère et modifie la valeur actuelle.
             for (int i = 0; i < list.getLength(); i++) {
-                node_item = list.item(i);
+                nodeItem = list.item(i);
                 //System.out.println("Node : " + list.item(i).getNodeName());
 
-                if (node_item.getNodeType() == Node.ELEMENT_NODE && node_item.getNodeName().equals("Project")) {
-                    org.w3c.dom.Element balise_project = (org.w3c.dom.Element) node_item;
+                if (nodeItem.getNodeType() == Node.ELEMENT_NODE && nodeItem.getNodeName().equals("Project")) {
+                    org.w3c.dom.Element baliseProject = (org.w3c.dom.Element) nodeItem;
 
-                    String attribute_version = balise_project.getAttribute("Version");
+                    String attributeVersion = baliseProject.getAttribute("Version");
 
                     // Si pour l'attribut "Version" il y a une valeur, c'est la bonne balise !
-                    if (!attribute_version.isEmpty()) {
-                        balise_project.setAttribute("Version", version);
+                    if (!attributeVersion.isEmpty()) {
+                        baliseProject.setAttribute("Version", version);
 
                         // On ne doit plus rien faire, donc on peut quitter la boucle.
                         break;
@@ -2027,20 +2031,20 @@ public final class AdobePremiereProject {
             Transformer transformer = transformerFactory.newTransformer();
             DOMSource source = new DOMSource(xml);
 
-            File xml_temporaire = new File(fichier_tmp.getAbsolutePath().replace(EXTENSION_TMP, ""));
+            File xmlTemporaire = new File(fichierTmp.getAbsolutePath().replace(EXTENSION_TMP, ""));
 
-            StreamResult result = new StreamResult(xml_temporaire);
+            StreamResult result = new StreamResult(xmlTemporaire);
             transformer.transform(source, result);
 
             // For console Output.
             StreamResult consoleResult = new StreamResult(System.out);
             transformer.transform(source, consoleResult);
 
-            ZipFiles.compressGzipFile(xml_temporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
+            ZipFiles.compressGzipFile(xmlTemporaire, new File(this.fichier.getAbsolutePath().replace(EXTENSION, "_CC2017" + EXTENSION)));
 
             // On supprime les fichiers temporaires.
-            fichier_tmp.delete();
-            xml_temporaire.delete();
+            fichierTmp.delete();
+            xmlTemporaire.delete();
         } catch (IOException | ParserConfigurationException | SAXException | TransformerException | ZipCustomException exception) {
             throw new AdobePremiereProjectException(exception.getMessage(), exception);
         }

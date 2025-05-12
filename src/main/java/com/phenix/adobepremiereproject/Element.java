@@ -1,5 +1,6 @@
 package com.phenix.adobepremiereproject;
 
+import com.phenix.adobepremiereproject.internal.XMLConvertible;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
@@ -9,7 +10,7 @@ import jakarta.validation.constraints.Null;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-abstract class Element implements AdobeXML {
+public abstract class Element implements XMLConvertible {
 
     /**
      * Liste des types d'élément.
@@ -33,7 +34,7 @@ abstract class Element implements AdobeXML {
     /**
      *
      */
-    private final TypeElement type_element;
+    private final TypeElement typeElement;
 
     /**
      * Utilisé pour savoir quel UID on donne au dossier.
@@ -43,7 +44,7 @@ abstract class Element implements AdobeXML {
     /**
      * Quantième élément créé.
      */
-    private static int numero_element = 0;
+    private static int numeroElement = 0;
 
     /**
      * Nom de l'élément.
@@ -121,13 +122,13 @@ abstract class Element implements AdobeXML {
      *
      * @param parent
      * @param name
-     * @param type_element
+     * @param typeElement
      */
-    public Element(@Null Folder parent, String name, TypeElement type_element) {
+    public Element(@Null Folder parent, String name, TypeElement typeElement) {
         this.name = name;
 
         // Définit le class ID.
-        switch (type_element) {
+        switch (typeElement) {
             case SEQUENCE ->
                 this.classID = "cb4e0ed7-aca1-4171-8525-e3658dec06dd";
             case FOLDER ->
@@ -137,16 +138,16 @@ abstract class Element implements AdobeXML {
             default ->
                 this.classID = "cb4e0ed7-aca1-4171-8525-e3658dec06dd";
         }
-        this.type_element = type_element;
+        this.typeElement = typeElement;
 
         this.current_ObjectURef = ObjectURef[numero_ObjectURef];
 
         // On indique qu'on pourra récupérer un nouveau ID de lien.
         numero_ObjectURef++;
 
-        this.id = numero_element;
+        this.id = numeroElement;
         // Quantième folder créé, on incrément d'office.
-        numero_element++;
+        numeroElement++;
 
         this.setParent(parent);
     }
@@ -207,7 +208,7 @@ abstract class Element implements AdobeXML {
     }
 
     public TypeElement getTypeElement() {
-        return this.type_element;
+        return this.typeElement;
     }
 
     /**

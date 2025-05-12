@@ -1,5 +1,8 @@
 package com.phenix.adobepremiereproject;
 
+import com.phenix.adobepremiereproject.internal.AdobeProjectConvertible;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
 /**
@@ -7,7 +10,7 @@ import jakarta.validation.constraints.Null;
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public enum MarkerColor {
+public enum MarkerColor implements AdobeProjectConvertible {
     /**
      *
      */
@@ -44,12 +47,10 @@ public enum MarkerColor {
         return null;
     }
 
-    /**
-     * Retourne la valeur de la couleur.
-     *
-     * @return Valeur de la couleur.
-     */
-    public long getValue() {
-        return this.value;
+    @NotNull
+    @NotBlank
+    @Override
+    public String toAdobeProject() {
+        return "" + this.value;
     }
 }

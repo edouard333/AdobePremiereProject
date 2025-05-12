@@ -1,12 +1,12 @@
 package com.phenix.adobepremiereproject;
 
-import java.io.PrintWriter;
+import com.phenix.adobepremiereproject.internal.XMLSimpleConvertible;
 
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public final class AudioComponentParam {
+public final class AudioComponentParam implements XMLSimpleConvertible {
 
     /**
      *
@@ -63,25 +63,26 @@ public final class AudioComponentParam {
         this.Timestamp = Timestamp;
     }
 
-    /**
-     *
-     * @param writer
-     */
-    public void toXML(PrintWriter writer) {
-        writer.append("\t<AudioComponentParam ObjectID=\"" + (this.ObjectID++) + "\" ClassID=\"" + this.ClassID + "\" Version=\"9\">\n");
+    @Override
+    public String toXML() {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("\t<AudioComponentParam ObjectID=\"" + (this.ObjectID++) + "\" ClassID=\"" + this.ClassID + "\" Version=\"9\">\n");
 
         if (this.ClassID.equals("a714635e-a628-4b27-9d59-77eba47dbc1a")) {
-            writer.append("\t	<UpperBound>" + this.UpperBound + "</UpperBound>\n");
+            stringBuilder.append("\t	<UpperBound>" + this.UpperBound + "</UpperBound>\n");
         }
 
-        writer.append("\t	<Name>" + this.Name + "</Name>\n");
+        stringBuilder.append("\t	<Name>" + this.Name + "</Name>\n");
 
         if (this.ClassID.equals("a714635e-a628-4b27-9d59-77eba47dbc1a")) {
-            writer.append("\t	<UnitsString>" + this.UnitsString + "</UnitsString>\n");
+            stringBuilder.append("\t	<UnitsString>" + this.UnitsString + "</UnitsString>\n");
         }
 
-        writer.append("\t	<ParameterControlType>" + this.ParameterControlType + "</ParameterControlType>\n");
-        writer.append("\t	<Timestamp>" + this.Timestamp + "</Timestamp>\n");
-        writer.append("\t</AudioComponentParam>\n");
+        stringBuilder.append("\t	<ParameterControlType>" + this.ParameterControlType + "</ParameterControlType>\n");
+        stringBuilder.append("\t	<Timestamp>" + this.Timestamp + "</Timestamp>\n");
+        stringBuilder.append("\t</AudioComponentParam>\n");
+
+        return stringBuilder.toString();
     }
 }

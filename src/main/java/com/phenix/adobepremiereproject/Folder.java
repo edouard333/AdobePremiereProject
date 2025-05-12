@@ -1,6 +1,5 @@
 package com.phenix.adobepremiereproject;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,47 +103,47 @@ public final class Folder extends Element {
         return this.sub_ObjectURef;
     }
 
-    /**
-     *
-     * @param writer
-     * @param order
-     */
     @Override
-    public void toXML(PrintWriter writer, int order) {
-        writer.append("\t<BinProjectItem ObjectUID=\"" + this.getCurrentObjectURef() + "\" ClassID=\"" + this.getClassID() + "\" Version=\"1\">\n");
-        writer.append("\t\t<ProjectItem Version=\"1\">\n");
-        writer.append("\t\t\t<Node Version=\"1\">\n");
-        writer.append("\t\t\t\t<Properties Version=\"1\">\n");
-        writer.append("\t\t\t\t\t<Column.PropertyText.Label>BE.Prefs.LabelColors.7</Column.PropertyText.Label>\n");
-        writer.append("\t\t\t\t\t<list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>" + (this.getExpanded() ? "true" : "false") + "</list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>\n");
+    public String toXML(int order) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("\t<BinProjectItem ObjectUID=\"" + this.getCurrentObjectURef() + "\" ClassID=\"" + this.getClassID() + "\" Version=\"1\">\n");
+        stringBuilder.append("\t\t<ProjectItem Version=\"1\">\n");
+        stringBuilder.append("\t\t\t<Node Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t<Properties Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t<Column.PropertyText.Label>BE.Prefs.LabelColors.7</Column.PropertyText.Label>\n");
+        stringBuilder.append("\t\t\t\t\t<list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>" + (this.getExpanded() ? "true" : "false") + "</list.view.expanded.state.3625b009_45_0f43_45_4db8_45_8f24_45_6be33ebbaa5f>\n");
 
         // Quand c'est le niveau 0, je ne sais pas mais il y a ça...
         //if (this.getLevel() == 0) {
-        writer.append("\t\t\t\t\t<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
+        stringBuilder.append("\t\t\t\t\t<project.icon.view.grid.order>" + order + "</project.icon.view.grid.order>\n");
         //}
 
-        writer.append("\t\t\t\t</Properties>\n");
+        stringBuilder.append("\t\t\t\t</Properties>\n");
 
         if (order == 0) {
-            writer.append("\t\t\t\t<ID>1000001</ID>\n");
+            stringBuilder.append("\t\t\t\t<ID>1000001</ID>\n");
         }
 
-        writer.append("\t\t\t</Node>\n");
-        writer.append("\t\t\t<Name>" + this.getName() + "</Name>\n");
-        writer.append("\t\t</ProjectItem>\n");
-        writer.append("\t\t<ProjectItemContainer Version=\"1\">\n");
+        stringBuilder.append("\t\t\t</Node>\n");
+        stringBuilder.append("\t\t\t<Name>" + this.getName() + "</Name>\n");
+        stringBuilder.append("\t\t</ProjectItem>\n");
+        stringBuilder.append("\t\t<ProjectItemContainer Version=\"1\">\n");
 
         // En plus level 1 (s'il a des subs éléments) :
         if (!this.getObjectURefs().isEmpty()) {
-            writer.append("\t\t\t<Items Version=\"1\">\n");
+            stringBuilder.append("\t\t\t<Items Version=\"1\">\n");
 
             for (int i = 0; i < this.getObjectURefs().size(); i++) {
-                writer.append("\t\t\t\t<Item Index=\"" + i + "\" ObjectURef=\"" + this.getObjectURef(i) + "\"/>\n");
+                stringBuilder.append("\t\t\t\t<Item Index=\"" + i + "\" ObjectURef=\"" + this.getObjectURef(i) + "\"/>\n");
             }
-            writer.append("\t\t\t</Items>\n");
+
+            stringBuilder.append("\t\t\t</Items>\n");
         }
 
-        writer.append("\t\t</ProjectItemContainer>\n");
-        writer.append("\t</BinProjectItem>\n");
+        stringBuilder.append("\t\t</ProjectItemContainer>\n");
+        stringBuilder.append("\t</BinProjectItem>\n");
+
+        return stringBuilder.toString();
     }
 }

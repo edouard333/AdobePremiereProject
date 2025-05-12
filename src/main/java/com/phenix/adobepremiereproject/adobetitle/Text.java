@@ -100,40 +100,40 @@ public final class Text {
                             </TextLine>
                         </TextChain>
          */
-        NodeList text_chain = this.node.getChildNodes();
+        NodeList textChain = this.node.getChildNodes();
 
-        Node node_text_chain;
+        Node nodeTextChain;
 
-        for (int i = 0; i < text_chain.getLength(); i++) {
-            node_text_chain = text_chain.item(i);
+        for (int i = 0; i < textChain.getLength(); i++) {
+            nodeTextChain = textChain.item(i);
 
-            if (node_text_chain.getNodeName().equals("TextLine")) {
-                NodeList text_line = node_text_chain.getChildNodes();
+            if (nodeTextChain.getNodeName().equals("TextLine")) {
+                NodeList textLine = nodeTextChain.getChildNodes();
 
-                Node node_text_line;
+                Node nodeTextLine;
 
-                for (int j = 0; j < text_line.getLength(); j++) {
-                    node_text_line = text_line.item(j);
+                for (int j = 0; j < textLine.getLength(); j++) {
+                    nodeTextLine = textLine.item(j);
 
-                    if (node_text_line.getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
-                        NodeList character_attributes = node_text_line.getChildNodes();
+                    if (nodeTextLine.getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
+                        NodeList characterAttributes = nodeTextLine.getChildNodes();
 
-                        Node node_character_attributes;
+                        Node nodeCharacterAttributes;
 
-                        for (int k = 0; k < character_attributes.getLength(); k++) {
-                            node_character_attributes = character_attributes.item(k);
+                        for (int k = 0; k < characterAttributes.getLength(); k++) {
+                            nodeCharacterAttributes = characterAttributes.item(k);
 
-                            if (node_character_attributes.getNodeName().equals("CharacterAttributes")) {
-                                Node attribute = node_character_attributes;
+                            if (nodeCharacterAttributes.getNodeName().equals("CharacterAttributes")) {
+                                Node attribute = nodeCharacterAttributes;
 
                                 int reference = Integer.parseInt(attribute.getAttributes().getNamedItem("TextRef").getNodeValue());
 
                                 System.out.println("TextRef : " + reference);
 
                                 // On lie le TextDescription qu'on a avec le bon texte...
-                                for (TextDescription text_description : textDescription) {
-                                    if (text_description.getReference() == reference) {
-                                        this.textDescription = text_description;
+                                for (TextDescription textDescription_ : textDescription) {
+                                    if (textDescription_.getReference() == reference) {
+                                        this.textDescription = textDescription_;
                                     }
                                 }
                             }
@@ -252,24 +252,31 @@ public final class Text {
      * @param text
      */
     public void setText(String text) {
+        Node nodeEnfant;
+
         for (int i = 0; i < this.node.getChildNodes().getLength(); i++) {
-            System.out.println(">> " + this.node.getChildNodes().item(i).getNodeName());
+            nodeEnfant = this.node.getChildNodes().item(i);
 
-            if (this.node.getChildNodes().item(i).getNodeName().equals("TextChain")) {
-                NodeList text_chain = this.node.getChildNodes().item(i).getChildNodes();
+            System.out.println(">> " + nodeEnfant.getNodeName());
 
-                System.out.println(">>>" + text_chain.item(i).getTextContent());
+            if (nodeEnfant.getNodeName().equals("TextChain")) {
+                NodeList textChain = nodeEnfant.getChildNodes();
 
-                for (int j = 0; j < text_chain.getLength(); j++) {
-                    System.out.println(">>>" + text_chain.item(j).getNodeName());
+                System.out.println(">>>" + textChain.item(i).getTextContent());
 
-                    if (text_chain.item(j).getNodeName().equals("TextLine")) {
-                        NodeList text_line = text_chain.item(j).getChildNodes();
+                for (int j = 0; j < textChain.getLength(); j++) {
+                    System.out.println(">>>" + textChain.item(j).getNodeName());
 
-                        for (int k = 0; k < text_line.getLength(); k++) {
-                            if (text_line.item(k).getNodeName().equals("TRString")) {
-                                System.out.println(text_line.item(k).getTextContent());
-                                text_line.item(k).setTextContent(text);
+                    if (textChain.item(j).getNodeName().equals("TextLine")) {
+                        NodeList textLine = textChain.item(j).getChildNodes();
+
+                        Node nodeTextLine;
+
+                        for (int k = 0; k < textLine.getLength(); k++) {
+                            nodeTextLine = textLine.item(k);
+                            if (nodeTextLine.getNodeName().equals("TRString")) {
+                                System.out.println(nodeTextLine.getTextContent());
+                                nodeTextLine.setTextContent(text);
                             }
                         }
                     }

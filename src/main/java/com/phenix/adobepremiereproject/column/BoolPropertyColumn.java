@@ -1,7 +1,5 @@
 package com.phenix.adobepremiereproject.column;
 
-import java.io.PrintWriter;
-
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
@@ -36,15 +34,14 @@ public final class BoolPropertyColumn extends Column {
         this.EditableKey = EditableKey;
     }
 
-    /**
-     *
-     * @param writer
-     */
     @Override
-    public void toXML(PrintWriter writer) {
-        super.toXML(writer, (file2) -> {
-            writer.append("\t\t\t\t\t\t<Column.Property.Key>" + this.PropertyBool + "</Column.Property.Key>\n");
-            writer.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.EditableKey + "</Column.Editable.Key>\n");
+    public String toXML() {
+        return super.toXML(() -> {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("\t\t\t\t\t\t<Column.Property.Key>" + this.PropertyBool + "</Column.Property.Key>\n");
+            stringBuilder.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.EditableKey + "</Column.Editable.Key>\n");
+
+            return stringBuilder.toString();
         });
     }
 }

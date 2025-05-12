@@ -1,5 +1,8 @@
 package com.phenix.adobepremiereproject;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 /**
  * Liste des versions d'Adobe Premiere Pro.
  *
@@ -74,15 +77,17 @@ public enum Version {
     /**
      * Numéro de version.
      */
-    private final String valeur;
+    @NotNull
+    @NotBlank
+    private final String value;
 
     /**
      * Définit la valeur.
      *
      * @param valeur La valeur.
      */
-    private Version(String valeur) {
-        this.valeur = valeur;
+    private Version(@NotNull @NotBlank String value) {
+        this.value = value;
     }
 
     /**
@@ -90,8 +95,10 @@ public enum Version {
      *
      * @return Numéro de version.
      */
+    @NotNull
+    @NotBlank
     @Override
     public String toString() {
-        return this.valeur;
+        return this.value;
     }
 }

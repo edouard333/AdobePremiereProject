@@ -41,7 +41,7 @@ public final class Main {
             projet.addElement(exports);
 
             Sequence sequence = new Sequence(exports, "sequence");
-            sequence.setStartTimecode(new Timecode("01:30:30:00", framerate.getValeur()));
+            sequence.setStartTimecode(new Timecode("01:30:30:00", framerate.value));
             sequence.setFramerate(framerate);
             sequence.setResolution(3840, 2160);
             projet.addElement(sequence);
@@ -80,11 +80,11 @@ public final class Main {
             projet.addElement(audio);
 
             {
-                Folder audio_24 = new Folder(audio, "24", false);
-                projet.addElement(audio_24);
+                Folder audio24 = new Folder(audio, "24", false);
+                projet.addElement(audio24);
 
-                Folder audio_25 = new Folder(audio, "25", false);
-                projet.addElement(audio_25);
+                Folder audio25 = new Folder(audio, "25", false);
+                projet.addElement(audio25);
             }
         }
 

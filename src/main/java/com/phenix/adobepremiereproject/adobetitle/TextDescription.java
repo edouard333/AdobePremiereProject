@@ -1,6 +1,7 @@
 package com.phenix.adobepremiereproject.adobetitle;
 
 import com.phenix.adobepremiereproject.adobetitle.font.Font;
+import jakarta.validation.constraints.NotNull;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -39,7 +40,7 @@ class TextDescription {
     /**
      *
      */
-    private String style_font;
+    private String styleFont;
 
     /**
      * Quand on va créer un style.
@@ -53,7 +54,7 @@ class TextDescription {
      *
      * @param node
      */
-    public TextDescription(Node node) {
+    public TextDescription(@NotNull Node node) {
         this.node = node;
 
         NodeList liste = this.node.getChildNodes();
@@ -68,24 +69,24 @@ class TextDescription {
         for (int i = 0; i < liste.getLength(); i++) {
             // On rentre dans le node :
             if (liste.item(i).getNodeName().equals("TypeSpec")) {
-                NodeList liste_type_spec = liste.item(i).getChildNodes();
+                NodeList listeTypeSpec = liste.item(i).getChildNodes();
 
-                Node node_type_spec;
+                Node nodeTypeSpec;
 
-                for (int j = 0; j < liste_type_spec.getLength(); j++) {
-                    node_type_spec = liste_type_spec.item(j);
+                for (int j = 0; j < listeTypeSpec.getLength(); j++) {
+                    nodeTypeSpec = listeTypeSpec.item(j);
 
-                    switch (node_type_spec.getNodeName()) {
+                    switch (nodeTypeSpec.getNodeName()) {
                         case "size" ->
-                            System.out.println("size : " + node_type_spec.getTextContent());
+                            System.out.println("size : " + nodeTypeSpec.getTextContent());
                         case "fiBold" ->
-                            this.bold = Boolean.parseBoolean(node_type_spec.getTextContent());
+                            this.bold = Boolean.parseBoolean(nodeTypeSpec.getTextContent());
                         case "fiItalic" ->
-                            this.italic = Boolean.parseBoolean(node_type_spec.getTextContent());
+                            this.italic = Boolean.parseBoolean(nodeTypeSpec.getTextContent());
                         case "fifontFamilyName" ->
-                            this.font = node_type_spec.getTextContent();
+                            this.font = nodeTypeSpec.getTextContent();
                         case "fifontStyle" ->
-                            this.style_font = node_type_spec.getTextContent();
+                            this.styleFont = nodeTypeSpec.getTextContent();
                     }
                 }
             }

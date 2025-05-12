@@ -1,12 +1,12 @@
 package com.phenix.adobepremiereproject.column;
 
-import java.io.PrintWriter;
+import com.phenix.adobepremiereproject.internal.XMLSimpleConvertible;
 
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
-public final class SelectedItemsColumn extends Column {
+public final class SelectedItemsColumn extends Column implements XMLSimpleConvertible {
 
     /**
      *
@@ -22,12 +22,8 @@ public final class SelectedItemsColumn extends Column {
         super("SelectedItemsColumn", ObjectID, "88bcfb15-97a7-49ed-ac05-7d3ce637d2a0", Name, ID, Type, Class, IsHidden, Width);
     }
 
-    /**
-     *
-     * @param writer
-     */
     @Override
-    public void toXML(PrintWriter writer) {
-        super.toXML(writer);
+    public String toXML() {
+        return super.toXML();
     }
 }

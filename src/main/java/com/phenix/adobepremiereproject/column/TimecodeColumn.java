@@ -1,7 +1,5 @@
 package com.phenix.adobepremiereproject.column;
 
-import java.io.PrintWriter;
-
 /**
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
@@ -22,12 +20,8 @@ public final class TimecodeColumn extends Column {
         super("TimecodeColumn", ObjectID, "9c9279d2-355c-487b-b644-0698b42e32f9", Name, ID, Type, Class, IsHidden, Width);
     }
 
-    /**
-     *
-     * @param writer
-     */
     @Override
-    public void toXML(PrintWriter writer) {
-        super.toXML(writer);
+    public String toXML() {
+        return super.toXML();
     }
 }
