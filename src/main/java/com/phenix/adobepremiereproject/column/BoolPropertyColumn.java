@@ -9,37 +9,38 @@ public final class BoolPropertyColumn extends Column {
     /**
      *
      */
-    private final String PropertyBool;
+    private final String propertyBool;
 
     /**
      *
      */
-    private final String EditableKey;
+    private final String editableKey;
 
     /**
+     * Initialise les valeur.
      *
-     * @param ObjectID
-     * @param Name
-     * @param ID
-     * @param Type
-     * @param Class
-     * @param IsHidden
-     * @param Width
-     * @param PropertyBool
-     * @param EditableKey
+     * @param objectID
+     * @param name
+     * @param id
+     * @param type
+     * @param class_
+     * @param isHidden
+     * @param width
+     * @param propertyBool
+     * @param editableKey
      */
-    public BoolPropertyColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width, String PropertyBool, String EditableKey) {
-        super("BoolPropertyColumn", ObjectID, "1d4dd772-4985-4f43-874a-84b2b566e724", Name, ID, Type, Class, IsHidden, Width);
-        this.PropertyBool = PropertyBool;
-        this.EditableKey = EditableKey;
+    public BoolPropertyColumn(int objectID, String name, String id, int type, int class_, boolean isHidden, int width, String propertyBool, String editableKey) {
+        super("BoolPropertyColumn", objectID, "1d4dd772-4985-4f43-874a-84b2b566e724", name, id, type, class_, isHidden, width);
+        this.propertyBool = propertyBool;
+        this.editableKey = editableKey;
     }
 
     @Override
     public String toXML() {
         return super.toXML(() -> {
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("\t\t\t\t\t\t<Column.Property.Key>" + this.PropertyBool + "</Column.Property.Key>\n");
-            stringBuilder.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.EditableKey + "</Column.Editable.Key>\n");
+            stringBuilder.append("\t\t\t\t\t\t<Column.Property.Key>" + this.propertyBool + "</Column.Property.Key>\n");
+            stringBuilder.append("\t\t\t\t\t\t<Column.Editable.Key>" + this.editableKey + "</Column.Editable.Key>\n");
 
             return stringBuilder.toString();
         });

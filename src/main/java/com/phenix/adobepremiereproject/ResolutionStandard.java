@@ -7,21 +7,21 @@ package com.phenix.adobepremiereproject;
  */
 public enum ResolutionStandard {
     /**
-     *
+     * La HD.
      */
     HD(1920, 1080),
     /**
-     *
+     * L'UHD.
      */
     UHD(3840, 2160);
 
     /**
-     * Hauteur.
+     * La hauteur.
      */
     public final int hauteur;
 
     /**
-     * Largeur
+     * La largeur
      */
     public final int largeur;
 

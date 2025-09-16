@@ -12,7 +12,7 @@ import com.phenix.timecode.Timecode;
 public final class Title extends ElementInSequence {
 
     /**
-     *
+     * L'id.
      */
     private int id;
 
@@ -27,27 +27,29 @@ public final class Title extends ElementInSequence {
     private static int nombreTitle = 1;
 
     /**
-     *
+     * La durée.
      */
     private Timecode duree;
 
     /**
+     * Initialise un titre avec un nom.
      *
-     * @param name
+     * @param name Le nom.
      */
     public Title(String name) {
         this(null, name);
     }
 
     /**
+     * Initialise un titre avec un nom.
      *
-     * @param parent
-     * @param name
+     * @param parent Le dossier parent.
+     * @param name Le nom.
      */
     public Title(Folder parent, String name) {
         super(parent, name, TypeElement.TITLE);
 
-        adobeTitle = new AdobeTitle();
+        this.adobeTitle = new AdobeTitle();
 
         nombreTitle++;
     }
@@ -55,16 +57,16 @@ public final class Title extends ElementInSequence {
     /**
      * Ajout d'un text.
      *
-     * @param text
+     * @param text Le texte.
      */
     public void addText(Text text) {
         adobeTitle.texts.add(text);
     }
 
     /**
-     * XML qu'il y a dans une séquence.
+     * Retourne sous-forme XML ce qu'il y a dans une séquence.
      *
-     * @return
+     * @return L'XML.
      */
     public String toXMLClipLoggingInfo() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -98,8 +100,9 @@ public final class Title extends ElementInSequence {
     }
 
     /**
+     * Retourne le nombre de titre.
      *
-     * @return
+     * @return Le nombre de titre.
      */
     public static int getTitleNumber() {
         return nombreTitle;
@@ -139,7 +142,7 @@ public final class Title extends ElementInSequence {
     /**
      * Définit la durée du titre.
      *
-     * @param duree
+     * @param duree La durée.
      */
     public void setDuree(Timecode duree) {
         this.duree = duree;
@@ -149,7 +152,7 @@ public final class Title extends ElementInSequence {
     public String toXML(int order) {
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append("    <ClipProjectItem ObjectUID=\"" + this.current_ObjectURef + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
+        stringBuilder.append("    <ClipProjectItem ObjectUID=\"" + this.currentObjectURef + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
         stringBuilder.append("		<ProjectItem Version=\"1\">\n");
         stringBuilder.append("			<Node Version=\"1\">\n");
         stringBuilder.append("				<Properties Version=\"1\">\n");
@@ -166,8 +169,9 @@ public final class Title extends ElementInSequence {
     }
 
     /**
+     * Le média source vidéo sous-forme XML.
      *
-     * @return
+     * @return L'XML.
      */
     //@Override
     public String toXMLVideoMediaSource() {

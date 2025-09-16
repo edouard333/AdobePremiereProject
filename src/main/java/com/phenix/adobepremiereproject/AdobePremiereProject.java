@@ -217,15 +217,17 @@ public final class AdobePremiereProject {
     }
 
     /**
+     * Retourne sous-forme XML la liste de colonne.
      *
-     * @param ObjectID
-     * @param columnIndexMax
-     * @param delta
+     * @param objectID L'objet id.
+     * @param columnIndexMax Le nombre maximum d'index de colonne.
+     * @param delta Le step.
+     * @return L'XML.
      */
-    private String toXMLColumnList(int ObjectID, int columnIndexMax, int delta) {
+    private String toXMLColumnList(int objectID, int columnIndexMax, int delta) {
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append("\t\t\t\t\t<ColumnList ObjectID=\"" + ObjectID + "\" ClassID=\"" + ColumnList.ClassID + "\" Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t<ColumnList ObjectID=\"" + objectID + "\" ClassID=\"" + ColumnList.CLASS_ID + "\" Version=\"1\">\n");
         stringBuilder.append("\t\t\t\t\t\t<Columns Version=\"1\">\n");
 
         for (int i = 0; i < columnIndexMax; i++) {
@@ -240,6 +242,8 @@ public final class AdobePremiereProject {
 
     /**
      * Écrit la structure du projet, le début.
+     *
+     * @return L'XML.
      */
     private String toXMLStart() throws AdobePremiereProjectException {
         StringBuilder stringBuilder = new StringBuilder();
@@ -249,7 +253,7 @@ public final class AdobePremiereProject {
         stringBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
         stringBuilder.append("<PremiereData Version=\"3\">\n");
         stringBuilder.append("\t<Project ObjectRef=\"1\"/>\n");
-        stringBuilder.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.ClassID + "\" Version=\"" + Version.CC2024 + "\">\n");
+        stringBuilder.append("\t<Project ObjectID=\"1\" ClassID=\"" + Project.CLASS_ID + "\" Version=\"" + Version.CC2024 + "\">\n");
         stringBuilder.append("\t\t<Node Version=\"1\">\n");
         stringBuilder.append("\t\t\t<Properties Version=\"1\">\n");
         stringBuilder.append("\t\t\t\t<ProjectViewState.List ObjectID=\"2\" ClassID=\"aab0946f-7a21-4425-8908-fafa2119e30e\" Version=\"3\">\n");

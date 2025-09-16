@@ -11,37 +11,37 @@ public final class CompileSettings implements XMLSimpleConvertible {
     /**
      *
      */
-    private final int ObjectID;
+    private final int objectID;
 
     /**
      *
      */
-    private final int VideoCompileSettings_ObjectRef;
+    private final int videoCompileSettings_ObjectRef;
 
     /**
      *
      */
-    private final int AudioCompileSettings_ObjectRef;
+    private final int audioCompileSettings_ObjectRef;
 
     /**
      *
-     * @param ObjectID
-     * @param VideoCompileSettings_ObjectRef
-     * @param AudioCompileSettings_ObjectRef
+     * @param objectID
+     * @param videoCompileSettings_ObjectRef
+     * @param audioCompileSettings_ObjectRef
      */
-    public CompileSettings(int ObjectID, int VideoCompileSettings_ObjectRef, int AudioCompileSettings_ObjectRef) {
-        this.ObjectID = ObjectID;
-        this.VideoCompileSettings_ObjectRef = VideoCompileSettings_ObjectRef;
-        this.AudioCompileSettings_ObjectRef = AudioCompileSettings_ObjectRef;
+    public CompileSettings(int objectID, int videoCompileSettings_ObjectRef, int audioCompileSettings_ObjectRef) {
+        this.objectID = objectID;
+        this.videoCompileSettings_ObjectRef = videoCompileSettings_ObjectRef;
+        this.audioCompileSettings_ObjectRef = audioCompileSettings_ObjectRef;
     }
 
     @Override
     public String toXML() {
         StringBuilder stringBuilder= new StringBuilder();
         
-        stringBuilder.append("\t<CompileSettings ObjectID=\"" + ObjectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
-        stringBuilder.append("\t\t<VideoCompileSettings ObjectRef=\"" + this.VideoCompileSettings_ObjectRef + "\"/>\n");
-        stringBuilder.append("\t\t<AudioCompileSettings ObjectRef=\"" + this.AudioCompileSettings_ObjectRef + "\"/>\n");
+        stringBuilder.append("\t<CompileSettings ObjectID=\"" + objectID + "\" ClassID=\"18a35d66-597e-4157-b783-938b5bec3547\" Version=\"4\">\n");
+        stringBuilder.append("\t\t<VideoCompileSettings ObjectRef=\"" + this.videoCompileSettings_ObjectRef + "\"/>\n");
+        stringBuilder.append("\t\t<AudioCompileSettings ObjectRef=\"" + this.audioCompileSettings_ObjectRef + "\"/>\n");
         stringBuilder.append("\t\t<CompilerClassIDFourCC>0</CompilerClassIDFourCC>\n");
         stringBuilder.append("\t\t<CompilerFourCC>0</CompilerFourCC>\n");
         stringBuilder.append("\t\t<ExportVideo>true</ExportVideo>\n");

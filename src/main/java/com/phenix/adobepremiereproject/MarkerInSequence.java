@@ -4,25 +4,27 @@ import com.phenix.adobepremiereproject.internal.XMLSimpleConvertible;
 import com.phenix.timecode.Timecode;
 
 /**
+ * Un marqueur de séquence.
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public final class MarkerInSequence implements XMLSimpleConvertible {
 
     /**
-     *
+     * Le marqueur.
      */
     private Marker marker;
 
     /**
-     *
+     * Le timecode du marqueur.
      */
     private Timecode timecode;
 
     /**
+     * Initialise un marqueur d'une séquence.
      *
-     * @param marker
-     * @param timecode
+     * @param marker Le marqueur.
+     * @param timecode Le timecode.
      */
     public MarkerInSequence(Marker marker, Timecode timecode) {
         this.marker = marker;

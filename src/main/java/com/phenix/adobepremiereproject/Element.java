@@ -18,21 +18,21 @@ public abstract class Element implements XMLConvertible {
     public enum TypeElement {
 
         /**
-         *
+         * Element de type dossier.
          */
         FOLDER,
         /**
-         *
+         * Element de type séquence.
          */
         SEQUENCE,
         /**
-         *
+         * Element de type titre (infographie).
          */
         TITLE;
     }
 
     /**
-     *
+     * Type d'élément.
      */
     private final TypeElement typeElement;
 
@@ -69,21 +69,21 @@ public abstract class Element implements XMLConvertible {
     /**
      * Lien avec son parent (unique).
      */
-    protected final String current_ObjectURef;
+    protected final String currentObjectURef;
 
     /**
      * ID unique du dossier.
      */
     @NotNull
     @NotEmpty
-    private final String[] ObjectUID = {"2650d29e-54c1-426b-9ba6-7ca4553e0deb", "b9681102-4102-4254-b37b-7484bd316927"};
+    private final String[] objectUID = {"2650d29e-54c1-426b-9ba6-7ca4553e0deb", "b9681102-4102-4254-b37b-7484bd316927"};
 
     /**
      * UID entre les éléments.
      */
     @NotNull
     @NotEmpty
-    private final String[] ObjectURef = {
+    private final String[] objectURef = {
         "a06df6aa-0739-444e-bfe5-e83daa9a046a",
         "a4f8b02c-775f-4273-81e9-8884e9fe32a0",
         "b9681102-4102-4254-b37b-7484bd316927",
@@ -111,18 +111,19 @@ public abstract class Element implements XMLConvertible {
     /**
      * ID du lien.
      */
-    private int id_ObjectURef;
+    private int idObjectURef;
 
     /**
      * Quantième lien entre élément fait.
      */
-    private static int numero_ObjectURef = 0;
+    private static int numeroObjectURef = 0;
 
     /**
+     * Définit un élément.
      *
-     * @param parent
-     * @param name
-     * @param typeElement
+     * @param parent Le dossier parent, peut être {@code null}.
+     * @param name Le nom de l'élément.
+     * @param typeElement Le type d'élément.
      */
     public Element(@Null Folder parent, String name, TypeElement typeElement) {
         this.name = name;
@@ -140,10 +141,10 @@ public abstract class Element implements XMLConvertible {
         }
         this.typeElement = typeElement;
 
-        this.current_ObjectURef = ObjectURef[numero_ObjectURef];
+        this.currentObjectURef = objectURef[numeroObjectURef];
 
         // On indique qu'on pourra récupérer un nouveau ID de lien.
-        numero_ObjectURef++;
+        numeroObjectURef++;
 
         this.id = numeroElement;
         // Quantième folder créé, on incrément d'office.
@@ -155,7 +156,7 @@ public abstract class Element implements XMLConvertible {
     /**
      * Définit le parent.
      *
-     * @param parent
+     * @param parent Le parent.
      */
     public void setParent(@Null Folder parent) {
         this.parent = parent;
@@ -164,7 +165,7 @@ public abstract class Element implements XMLConvertible {
         if (parent != null) {
             this.level = parent.getLevel() + 1;
             // On ajoute au parent le lien entre l'enfant et le parent.
-            this.parent.sub_ObjectURef.add(this.current_ObjectURef);
+            this.parent.sub_ObjectURef.add(this.currentObjectURef);
         } // Sinon, c'est le niveau le plus haut et c'est 0 (il a une ref parent).
         else {
             this.level = 0;
@@ -181,7 +182,8 @@ public abstract class Element implements XMLConvertible {
     }
 
     /**
-     * Niveau dans la hiérarchie des dossiers (0 = root, 1 = sub-folder, ...).
+     * Retourne le niveau dans la hiérarchie des dossiers (0 = root, 1 =
+     * sub-folder, ...).
      *
      * @return Niveau du dossier.
      */
@@ -190,9 +192,9 @@ public abstract class Element implements XMLConvertible {
     }
 
     /**
-     * Retourne le parent.
+     * Retourne le dossier parent.
      *
-     * @return
+     * @return Le dossier parent.
      */
     public Folder getParent() {
         return this.parent;
@@ -201,12 +203,17 @@ public abstract class Element implements XMLConvertible {
     /**
      * Retourne le classID.
      *
-     * @return
+     * @return Le classe ID.
      */
     public String getClassID() {
         return this.classID;
     }
 
+    /**
+     * Retourne le type d'élément.
+     *
+     * @return Le type d'élément.
+     */
     public TypeElement getTypeElement() {
         return this.typeElement;
     }
@@ -217,7 +224,7 @@ public abstract class Element implements XMLConvertible {
      * @return L'Object UID.
      */
     public String getObjectUID() {
-        return this.ObjectUID[id];
+        return this.objectUID[id];
     }
 
     /**
@@ -226,6 +233,6 @@ public abstract class Element implements XMLConvertible {
      * @return Lien du parent.
      */
     public String getCurrentObjectURef() {
-        return this.current_ObjectURef;
+        return this.currentObjectURef;
     }
 }

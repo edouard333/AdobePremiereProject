@@ -15,70 +15,70 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
     /**
      *
      */
-    private final String ColumnType;
+    private final String columnType;
 
     /**
      *
      */
-    private final int ObjectID;
+    private final int objectID;
 
     /**
      *
      */
-    private final String ClassID;
+    private final String classID;
 
     /**
      *
      */
-    private final String Name;
+    private final String name;
 
     /**
      *
      */
-    private final String ID;
+    private final String id;
 
     /**
      *
      */
-    private final int Type;
+    private final int type;
 
     /**
      *
      */
-    private final int Class;
+    private final int class_;
 
     /**
      *
      */
-    private final boolean IsHidden;
+    private final boolean isHidden;
 
     /**
      *
      */
-    private final int Width;
+    private final int width;
 
     /**
      *
-     * @param ColumnType
-     * @param ObjectID
-     * @param ClassID
-     * @param Name
-     * @param ID
-     * @param Type
-     * @param Class
-     * @param IsHidden
-     * @param Width
+     * @param columnType
+     * @param objectID
+     * @param classID
+     * @param name
+     * @param id
+     * @param type
+     * @param class_
+     * @param isHidden
+     * @param width
      */
-    public Column(String ColumnType, int ObjectID, String ClassID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        this.ColumnType = ColumnType;
-        this.ObjectID = ObjectID;
-        this.ClassID = ClassID;
-        this.Name = Name;
-        this.ID = ID;
-        this.Type = Type;
-        this.Class = Class;
-        this.IsHidden = IsHidden;
-        this.Width = Width;
+    public Column(String columnType, int objectID, String classID, String name, String id, int type, int class_, boolean isHidden, int width) {
+        this.columnType = columnType;
+        this.objectID = objectID;
+        this.classID = classID;
+        this.name = name;
+        this.id = id;
+        this.type = type;
+        this.class_ = class_;
+        this.isHidden = isHidden;
+        this.width = width;
     }
 
     /**
@@ -86,7 +86,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public int getObjectID() {
-        return this.ObjectID;
+        return this.objectID;
     }
 
     /**
@@ -94,7 +94,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public String getClassID() {
-        return this.ClassID;
+        return this.classID;
     }
 
     /**
@@ -102,7 +102,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public String getName() {
-        return this.Name;
+        return this.name;
     }
 
     /**
@@ -110,7 +110,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public String getID() {
-        return this.ID;
+        return this.id;
     }
 
     /**
@@ -118,7 +118,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public int getType() {
-        return this.Type;
+        return this.type;
     }
 
     /**
@@ -126,7 +126,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public int getClassAtr() {
-        return this.Class;
+        return this.class_;
     }
 
     /**
@@ -134,7 +134,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public boolean getIsHidden() {
-        return this.IsHidden;
+        return this.isHidden;
     }
 
     /**
@@ -142,7 +142,7 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
      * @return
      */
     public int getWidth() {
-        return this.ObjectID;
+        return this.objectID;
     }
 
     @Override
@@ -154,19 +154,19 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
     public String toXML(@Null AddPropertiesXML properties) {
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append("\t\t\t\t\t<" + this.ColumnType + " ObjectID=\"" + this.ObjectID + "\" ClassID=\"" + this.ClassID + "\" Version=\"1\">\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.Name>" + this.Name + "</Column.Name>\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.ID>" + this.ID + "</Column.ID>\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.Type>" + this.Type + "</Column.Type>\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.Class>" + this.Class + "</Column.Class>\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.IsHidden>" + this.IsHidden + "</Column.IsHidden>\n");
-        stringBuilder.append("\t\t\t\t\t\t<Column.Width>" + this.Width + "</Column.Width>\n");
+        stringBuilder.append("\t\t\t\t\t<" + this.columnType + " ObjectID=\"" + this.objectID + "\" ClassID=\"" + this.classID + "\" Version=\"1\">\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Name>" + this.name + "</Column.Name>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.ID>" + this.id + "</Column.ID>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Type>" + this.type + "</Column.Type>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Class>" + this.class_ + "</Column.Class>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.IsHidden>" + this.isHidden + "</Column.IsHidden>\n");
+        stringBuilder.append("\t\t\t\t\t\t<Column.Width>" + this.width + "</Column.Width>\n");
 
         if (properties != null) {
             stringBuilder.append(properties.addXMLProperties());
         }
 
-        stringBuilder.append("\t\t\t\t\t</" + this.ColumnType + ">\n");
+        stringBuilder.append("\t\t\t\t\t</" + this.columnType + ">\n");
 
         return stringBuilder.toString();
     }

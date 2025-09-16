@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Null;
  */
 public enum MarkerColor implements AdobeProjectConvertible {
     /**
-     *
+     * La couleur rouge.
      */
     RED(4281740498L);
 

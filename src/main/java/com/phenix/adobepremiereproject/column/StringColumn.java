@@ -10,16 +10,16 @@ public final class StringColumn extends Column implements XMLSimpleConvertible {
 
     /**
      *
-     * @param ObjectID
-     * @param Name
-     * @param ID
-     * @param Type
-     * @param Class
-     * @param IsHidden
-     * @param Width
+     * @param objectID
+     * @param name
+     * @param id
+     * @param type
+     * @param class_
+     * @param isHidden
+     * @param width
      */
-    public StringColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        super("StringColumn", ObjectID, "f0ef302d-babc-4f75-9975-923a8ca28d7e", Name, ID, Type, Class, IsHidden, Width);
+    public StringColumn(int objectID, String name, String id, int type, int class_, boolean isHidden, int width) {
+        super("StringColumn", objectID, "f0ef302d-babc-4f75-9975-923a8ca28d7e", name, id, type, class_, isHidden, width);
     }
 
     @Override

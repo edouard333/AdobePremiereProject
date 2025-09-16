@@ -8,16 +8,16 @@ public final class CaptureSettingsColumn extends Column {
 
     /**
      *
-     * @param ObjectID
-     * @param Name
-     * @param ID
-     * @param Type
-     * @param Class
-     * @param IsHidden
-     * @param Width
+     * @param objectID
+     * @param name
+     * @param id
+     * @param type
+     * @param class_
+     * @param isHidden
+     * @param width
      */
-    public CaptureSettingsColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        super("CaptureSettingsColumn", ObjectID, "97dc9c98-3a27-4320-91c3-cc222addeef7", Name, ID, Type, Class, IsHidden, Width);
+    public CaptureSettingsColumn(int objectID, String name, String id, int type, int class_, boolean isHidden, int width) {
+        super("CaptureSettingsColumn", objectID, "97dc9c98-3a27-4320-91c3-cc222addeef7", name, id, type, class_, isHidden, width);
     }
 
     @Override

@@ -10,11 +10,11 @@ import jakarta.validation.constraints.NotNull;
 public final class ColumnList {
 
     /**
-     *
+     * L'ID de l'élément.
      */
     @NotNull
     @NotBlank
-    public static final String ClassID = "a1c709cd-35df-4821-8200-03565d374155";
+    public static final String CLASS_ID = "a1c709cd-35df-4821-8200-03565d374155";
 
     /**
      * On ne peut pas instancier cette classe.

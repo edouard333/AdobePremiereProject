@@ -8,16 +8,16 @@ public final class NameColumn extends Column {
 
     /**
      *
-     * @param ObjectID
-     * @param Name
-     * @param ID
-     * @param Type
-     * @param Class
-     * @param IsHidden
-     * @param Width
+     * @param objectID
+     * @param name
+     * @param id
+     * @param type
+     * @param class_
+     * @param isHidden
+     * @param width
      */
-    public NameColumn(int ObjectID, String Name, String ID, int Type, int Class, boolean IsHidden, int Width) {
-        super("NameColumn", ObjectID, "0547b302-c849-46b3-ae2a-b245e9dd59eb", Name, ID, Type, Class, IsHidden, Width);
+    public NameColumn(int objectID, String name, String id, int type, int class_, boolean isHidden, int width) {
+        super("NameColumn", objectID, "0547b302-c849-46b3-ae2a-b245e9dd59eb", name, id, type, class_, isHidden, width);
     }
 
     @Override

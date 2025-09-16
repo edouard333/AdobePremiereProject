@@ -1,12 +1,14 @@
 package com.phenix.adobepremiereproject;
 
 /**
+ * Element dans une séquence.
  *
  * @author <a href="mailto:edouard128@hotmail.com">Edouard Jeanjean</a>
  */
 public abstract class ElementInSequence extends Element {
 
     /**
+     * Initialise un élément.
      *
      * @param parent
      * @param name
@@ -17,16 +19,16 @@ public abstract class ElementInSequence extends Element {
     }
 
     /**
-     * Code dans la séquence
+     * Retourne sous-forme XML le code dans la séquence.
      *
-     * @return
+     * @return L'XML.
      */
     public abstract String toXMLinSequence();
 
     /**
-     * Données liées à la balise "Media".
+     * Retourne sous-forme XML les données liées à la balise "<em>Media</em>".
      *
-     * @return
+     * @return L'XML.
      */
     public abstract String toXMLMedia();
 }

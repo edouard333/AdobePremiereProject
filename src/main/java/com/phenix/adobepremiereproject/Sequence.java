@@ -14,17 +14,17 @@ import java.util.List;
 public final class Sequence extends ElementInSequence {
 
     /**
-     *
+     * L'id de la séquence.
      */
     private int id;
 
     /**
-     *
+     * Le timecode de début.
      */
     private Timecode startTimecode;
 
     /**
-     *
+     * Le framerate.
      */
     private Framerate framerate;
 
@@ -160,8 +160,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne la partie vidéo du clip en XML.
      *
-     * @return
+     * @return L'XML.
      */
     public String toXMLVideoClip() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -186,8 +187,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne le clip sous forme d'XML.
      *
-     * @return
+     * @return L'XML.
      */
     public String toXMLClip() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -255,8 +257,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne la séquence source audio sous-forme XML.
      *
-     * @return
+     * @return L'XML
      */
     public String toXMLAudioSequenceSource() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -303,7 +306,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
-     * @return
+     * Retourne la séequence sous-forme XML.
+     *
+     * @return L'XML.
      */
     public String toXMLSequence() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -467,8 +472,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne le groupe de piste audio sous-forme XML.
      *
-     * @return
+     * @return L'XML.
      */
     public String toXMLAudioTrackGroup() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -989,8 +995,9 @@ public final class Sequence extends ElementInSequence {
     }
 
     /**
+     * Retourne le media source vidéo sous-forme XML.
      *
-     * @return
+     * @return L'XML.
      */
     //@Override
     public String toXMLvideoMediaSource() {

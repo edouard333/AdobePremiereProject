@@ -36,7 +36,7 @@ public final class AdobeTitle implements XMLSimpleConvertible {
     /**
      *
      */
-    private static String DOSSIER_TMP = "C:\\TMP";
+    private static String dossierTmp = "C:\\TMP";
 
     /**
      * L'XML.
@@ -70,7 +70,7 @@ public final class AdobeTitle implements XMLSimpleConvertible {
 
             this.dataDecode = decompress(decode);
 
-            File pathTmp = new File(DOSSIER_TMP + File.separator + "title" + id + ".tmp");
+            File pathTmp = new File(dossierTmp + File.separator + "title" + id + ".tmp");
 
             try (PrintWriter writer = new PrintWriter(pathTmp)) {
                 writer.append(this.dataDecode);
