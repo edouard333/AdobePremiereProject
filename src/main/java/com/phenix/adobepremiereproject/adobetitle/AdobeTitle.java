@@ -83,11 +83,9 @@ public final class AdobeTitle implements XMLSimpleConvertible {
 
             List<TextDescription> listeTextDescription = new ArrayList<TextDescription>();
 
-            Node nodeItem;
-
             // Ce qui est dans Adobe_Root :
             for (int i = 0; i < list.getLength(); i++) {
-                nodeItem = list.item(i);
+                Node nodeItem = list.item(i);
 
                 // Ce qui nous intéresse "InscriberLayouts" :
                 if (nodeItem.getNodeName().equals("InscriberLayouts")) {
@@ -95,20 +93,16 @@ public final class AdobeTitle implements XMLSimpleConvertible {
 
                     NodeList inscriber = nodeItem.getChildNodes();
 
-                    Node nodeInscriber;
-
                     for (int j = 0; j < inscriber.getLength(); j++) {
-                        nodeInscriber = inscriber.item(j);
+                        Node nodeInscriber = inscriber.item(j);
 
                         if (nodeInscriber.getNodeName().equals("Layout")) {
                             System.out.println(" * " + j + " : " + nodeInscriber.getNodeName());
 
                             NodeList layout = nodeInscriber.getChildNodes();
 
-                            Node nodeLayout;
-
                             for (int k = 0; k < layout.getLength(); k++) {
-                                nodeLayout = layout.item(k);
+                                Node nodeLayout = layout.item(k);
 
                                 // Les fonts/cara lié au texte :
                                 if (nodeLayout.getNodeName().equals("TextDescriptions")) {
@@ -126,42 +120,30 @@ public final class AdobeTitle implements XMLSimpleConvertible {
 
                                     NodeList layers = nodeLayout.getChildNodes();
 
-                                    Node nodeLayers;
-
                                     for (int l = 0; l < layers.getLength(); l++) {
-                                        nodeLayers = layers.item(l);
+                                        Node nodeLayers = layers.item(l);
 
                                         if (nodeLayers.getNodeName().equals("Layer")) {
                                             System.out.println(" * * * " + l + " : " + nodeLayers.getNodeName());
 
                                             NodeList layer = nodeLayers.getChildNodes();
 
-                                            Node nodeLayer;
-
                                             for (int m = 0; m < layer.getLength(); m++) {
-                                                nodeLayer = layer.item(m);
+                                                Node nodeLayer = layer.item(m);
 
                                                 if (nodeLayer.getNodeName().equals("TextPage")) {
                                                     System.out.println(" * * * * " + m + " : " + nodeLayer.getNodeName());
 
                                                     NodeList textPage = nodeLayer.getChildNodes();
 
-                                                    Node nodeTextPage;
-
                                                     for (int n = 0; n < textPage.getLength(); n++) {
-                                                        nodeTextPage = textPage.item(n);
+                                                        Node nodeTextPage = textPage.item(n);
 
                                                         System.out.println(" * * * * * " + n + " : " + nodeTextPage.getNodeName());
 
                                                         Text tc = new Text(nodeTextPage, listeTextDescription);
 
                                                         texts.add(tc);
-
-                                                        //System.out.println("Pos x : " + tc.getPositionX());
-                                                        //System.out.println("Pos y : " + tc.getPositionY());
-                                                        //System.out.println("Size x : " + tc.getSizeX());
-                                                        //System.out.println("Size y : " + tc.getSizeY());
-                                                        //System.out.println("Text : " + tc.getText());
                                                     }
                                                 }
                                             }

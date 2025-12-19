@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
-    <version>0.3.9</version>
+    <version>0.3.10</version>
     <packaging>jar</packaging>
     
     <name>AdobePremiereProject</name>
@@ -24,7 +24,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>enforce-files-exist</id>
@@ -33,6 +33,23 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <!-- Vérifie qu'on utilise la bonne version de JDK. -->
+                                <requireJavaVersion>
+                                    <version>25</version>
+                                </requireJavaVersion>
+                                <!-- Vérifie qu'est indiqué le mode d'encodage des sources. -->
+                                <requireProperty>
+                                    <property>project.build.sourceEncoding</property>
+                                    <regex>^(UTF-8)$</regex>
+                                    <message>Le sourceEncoding doit être renseigné.</message>
+                                    <regexMessage>Le sourceEncoding doit être "UTF-8".</regexMessage>
+                                </requireProperty>
+                                <!-- Vérifie qu'est indiqué la version du JDK pour la compilation. -->
+                                <requireProperty>
+                                    <property>maven.compiler.release</property>
+                                    <regex>^(25)$</regex>
+                                    <message>La version du JDK (compiler.release) doit être 25.</message>
+                                </requireProperty>
                                 <!-- Vérifie que les propriétés existent et ont des valeurs valides. -->
                                 <requireProperty>
                                     <property>appType</property>
@@ -51,7 +68,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -67,7 +84,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadoc</id>
@@ -118,17 +135,17 @@
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>codec</artifactId>
-            <version>0.3.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.phenix</groupId>
-            <artifactId>compression</artifactId>
             <version>0.3.2</version>
         </dependency>
         <dependency>
             <groupId>com.phenix</groupId>
+            <artifactId>compression</artifactId>
+            <version>0.3.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.phenix</groupId>
             <artifactId>timecode</artifactId>
-            <version>0.8.3</version>
+            <version>0.8.4</version>
         </dependency>
         <!-- Ajout des annotations @NotNull, etc. -->
         <dependency>
@@ -140,8 +157,7 @@
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
         <!-- Type d'application : "graphic", "console" ou "library". -->
         <appType>library</appType>
     </properties>

@@ -102,26 +102,20 @@ public final class Text {
          */
         NodeList textChain = this.node.getChildNodes();
 
-        Node nodeTextChain;
-
         for (int i = 0; i < textChain.getLength(); i++) {
-            nodeTextChain = textChain.item(i);
+            Node nodeTextChain = textChain.item(i);
 
             if (nodeTextChain.getNodeName().equals("TextLine")) {
                 NodeList textLine = nodeTextChain.getChildNodes();
 
-                Node nodeTextLine;
-
                 for (int j = 0; j < textLine.getLength(); j++) {
-                    nodeTextLine = textLine.item(j);
+                    Node nodeTextLine = textLine.item(j);
 
                     if (nodeTextLine.getNodeName().equals("RunLengthEncodedCharacterAttributes")) {
                         NodeList characterAttributes = nodeTextLine.getChildNodes();
 
-                        Node nodeCharacterAttributes;
-
                         for (int k = 0; k < characterAttributes.getLength(); k++) {
-                            nodeCharacterAttributes = characterAttributes.item(k);
+                            Node nodeCharacterAttributes = characterAttributes.item(k);
 
                             if (nodeCharacterAttributes.getNodeName().equals("CharacterAttributes")) {
                                 Node attribute = nodeCharacterAttributes;
@@ -252,10 +246,8 @@ public final class Text {
      * @param text
      */
     public void setText(String text) {
-        Node nodeEnfant;
-
         for (int i = 0; i < this.node.getChildNodes().getLength(); i++) {
-            nodeEnfant = this.node.getChildNodes().item(i);
+            Node nodeEnfant = this.node.getChildNodes().item(i);
 
             System.out.println(">> " + nodeEnfant.getNodeName());
 
@@ -270,10 +262,9 @@ public final class Text {
                     if (textChain.item(j).getNodeName().equals("TextLine")) {
                         NodeList textLine = textChain.item(j).getChildNodes();
 
-                        Node nodeTextLine;
-
                         for (int k = 0; k < textLine.getLength(); k++) {
-                            nodeTextLine = textLine.item(k);
+                            Node nodeTextLine = textLine.item(k);
+
                             if (nodeTextLine.getNodeName().equals("TRString")) {
                                 System.out.println(nodeTextLine.getTextContent());
                                 nodeTextLine.setTextContent(text);

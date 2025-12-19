@@ -165,6 +165,7 @@ public final class AdobePremiereProject {
         StringBuilder stringBuilder = new StringBuilder();
 
         int order = 0;
+
         for (Element element : this.elements) {
             if (element.getLevel() == level) {
                 stringBuilder.append(element.toXML(order));
@@ -2008,12 +2009,9 @@ public final class AdobePremiereProject {
 
             NodeList list = xml.getDocumentElement().getChildNodes();
 
-            Node nodeItem;
-
             // Récupère et modifie la valeur actuelle.
             for (int i = 0; i < list.getLength(); i++) {
-                nodeItem = list.item(i);
-                //System.out.println("Node : " + list.item(i).getNodeName());
+                Node nodeItem = list.item(i);
 
                 if (nodeItem.getNodeType() == Node.ELEMENT_NODE && nodeItem.getNodeName().equals("Project")) {
                     org.w3c.dom.Element baliseProject = (org.w3c.dom.Element) nodeItem;

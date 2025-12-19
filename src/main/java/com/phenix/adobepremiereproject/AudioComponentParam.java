@@ -45,7 +45,7 @@ public final class AudioComponentParam implements XMLSimpleConvertible {
 
     /**
      *
-     * @param OojectID
+     * @param objectID
      * @param classID
      * @param upperBound
      * @param name

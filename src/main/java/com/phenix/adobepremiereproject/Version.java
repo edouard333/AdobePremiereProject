@@ -84,7 +84,7 @@ public enum Version {
     /**
      * Définit la valeur.
      *
-     * @param valeur La valeur.
+     * @param value La valeur.
      */
     private Version(@NotNull @NotBlank String value) {
         this.value = value;

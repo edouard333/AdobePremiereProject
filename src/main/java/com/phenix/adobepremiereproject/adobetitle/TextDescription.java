@@ -67,14 +67,14 @@ class TextDescription {
         this.reference = Integer.parseInt(this.node.getAttributes().getNamedItem("Reference").getNodeValue());
 
         for (int i = 0; i < liste.getLength(); i++) {
-            // On rentre dans le node :
-            if (liste.item(i).getNodeName().equals("TypeSpec")) {
-                NodeList listeTypeSpec = liste.item(i).getChildNodes();
+            Node nodeItem = liste.item(i);
 
-                Node nodeTypeSpec;
+            // On rentre dans le node :
+            if (nodeItem.getNodeName().equals("TypeSpec")) {
+                NodeList listeTypeSpec = nodeItem.getChildNodes();
 
                 for (int j = 0; j < listeTypeSpec.getLength(); j++) {
-                    nodeTypeSpec = listeTypeSpec.item(j);
+                    Node nodeTypeSpec = listeTypeSpec.item(j);
 
                     switch (nodeTypeSpec.getNodeName()) {
                         case "size" ->
