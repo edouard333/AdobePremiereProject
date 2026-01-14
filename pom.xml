@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.phenix</groupId>
     <artifactId>adobepremiereproject</artifactId>
-    <version>0.3.10</version>
+    <version>0.3.11</version>
     <packaging>jar</packaging>
     
     <name>AdobePremiereProject</name>
@@ -64,22 +64,45 @@
                 </executions>
             </plugin>
             
-            <!-- Ajoute le code source dans Maven. -->
+            <!-- Analyse la qualité du code et fait un rapport. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.4.0</version>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.6.0</version>
+                
+                <dependencies>
+                    <!-- Version de Checkstyle. -->
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>10.12.3</version>
+                    </dependency>
+                </dependencies>
+                
+                <configuration>
+                    <configLocation>checkstyle.xml</configLocation>
+                    <consoleOutput>false</consoleOutput>
+                    <!-- On ne veut pas arrêter le build pour une violation de standard. -->
+                    <failOnViolation>false</failOnViolation>
+                    <failsOnError>false</failsOnError>
+                    <linkXRef>false</linkXRef>
+                    <!-- CheckStyle n'arrive pas à décoder les "module-info.java". -->
+                    <excludes>
+                        **/module-info.java
+                    </excludes>
+                </configuration>
+
                 <executions>
                     <execution>
-                        <id>attach-sources</id>
-                        <phase>verify</phase>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
                         <goals>
-                            <goal>jar-no-fork</goal>
+                            <goal>check</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
-        
+            
             <!-- Ajoute la JavaDoc dans Maven. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -95,6 +118,22 @@
                 </executions>
             </plugin>
             
+            <!-- Ajoute le code source dans Maven. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <!-- Génère des checksums. -->
             <plugin>
                 <groupId>net.nicoulaj.maven.plugins</groupId>
@@ -102,6 +141,7 @@
                 <version>1.11</version>
                 <executions>
                     <execution>
+                        <id>checksum-package</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>files</goal>
@@ -113,8 +153,8 @@
                                     <directory>${project.build.directory}</directory>
                                     <includes>
                                         <include>*-${project.version}.jar</include>
-                                        <include>*-${project.version}-sources.jar</include>
                                         <include>*-${project.version}-javadoc.jar</include>
+                                        <include>*-${project.version}-sources.jar</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>
@@ -135,12 +175,12 @@
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>codec</artifactId>
-            <version>0.3.2</version>
+            <version>0.3.3</version>
         </dependency>
         <dependency>
             <groupId>com.phenix</groupId>
             <artifactId>compression</artifactId>
-            <version>0.3.3</version>
+            <version>0.3.4</version>
         </dependency>
         <dependency>
             <groupId>com.phenix</groupId>

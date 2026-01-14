@@ -82,24 +82,27 @@ public class Column implements XMLWithPropertiesConvertible, XMLSimpleConvertibl
     }
 
     /**
+     * Retourne l'ObjectID.
      *
-     * @return
+     * @return L'ObjectifID.
      */
     public int getObjectID() {
         return this.objectID;
     }
 
     /**
+     * Retourne le ClassID.
      *
-     * @return
+     * @return Le ClassID.
      */
     public String getClassID() {
         return this.classID;
     }
 
     /**
+     * Retourne le nom.
      *
-     * @return
+     * @return Le nom.
      */
     public String getName() {
         return this.name;
